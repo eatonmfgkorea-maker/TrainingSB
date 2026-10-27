@@ -1,0 +1,3247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MFG 교육 관리 시스템</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+body{font-family:'Malgun Gothic',-apple-system,sans-serif}
+@media print{
+  .no-print{display:none!important}
+  body{background:white!important}
+  .print-page{box-shadow:none!important;margin:0!important;padding:10mm!important}
+}
+@media print{
+  body.print-skillmap .no-print-skillmap{display:none!important}
+  body.print-skillmap .skillmap-print-title{display:block!important}
+  body.print-skillmap *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body.print-skillmap .max-w-full{max-width:none!important;padding:0!important;margin:0!important}
+  body.print-skillmap .skillmap-print-area .bg-white{box-shadow:none!important;overflow:visible!important;max-height:none!important;padding:0!important;border-radius:0!important}
+  body.print-skillmap .skillmap-print-area table{border-collapse:collapse!important;width:100%!important;table-layout:fixed!important}
+  body.print-skillmap .skillmap-print-area th,
+  body.print-skillmap .skillmap-print-area td{position:static!important;border:1px solid #999!important;overflow:hidden!important}
+  body.print-skillmap .skillmap-print-area col.cg-line{width:26px!important}
+  body.print-skillmap .skillmap-print-area col.cg-proc{width:175px!important}
+  body.print-skillmap .skillmap-print-area col.cg-person{width:42px!important}
+  body.print-skillmap .skillmap-print-area .hdr-line{font-size:13px!important;padding:2px!important}
+  body.print-skillmap .skillmap-print-area .hdr-proc{font-size:14px!important;padding:2px 6px!important}
+  body.print-skillmap .skillmap-print-area .num-cell{font-size:11px!important;padding:1px!important}
+  body.print-skillmap .skillmap-print-area .photo-th{padding:2px!important;height:52px!important}
+  body.print-skillmap .skillmap-print-area .photo-th img{width:46px!important;height:46px!important;border-radius:3px!important;object-fit:cover!important;display:block!important;margin:auto!important}
+  body.print-skillmap .skillmap-print-area .photo-th>div{width:46px!important;height:46px!important;font-size:22px!important}
+  body.print-skillmap .skillmap-print-area .name-h{font-size:12px!important;padding:3px 1px!important;font-weight:700!important}
+  body.print-skillmap .skillmap-print-area .join-cell{padding:1px!important;color:#2563eb!important;overflow:visible!important}
+  body.print-skillmap .skillmap-print-area .join-cell div{font-size:9px!important;line-height:1.1!important}
+  body.print-skillmap .skillmap-print-area .line-col{padding:1px!important;font-size:10px!important}
+  body.print-skillmap .skillmap-print-area .proc-col{padding:2px 6px!important;font-size:12px!important;writing-mode:horizontal-tb!important;white-space:normal!important;line-height:1.2!important;vertical-align:middle!important}
+  body.print-skillmap .skillmap-print-area .person-col{padding:1px!important;font-size:13px!important;vertical-align:middle!important}
+  body.print-skillmap #skillmapQR{width:58px!important;height:58px!important}
+  body.print-skillmap #skillmapQR canvas{width:58px!important;height:58px!important;display:block!important}
+  body.print-skillmap #skillmapQR img{display:none!important}
+}
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div id="app"></div>
+<script>
+// ============ V5 회사 데이터 ============
+const COMPANY_PROCESSES = [
+  // TCP
+  { line:"1PC LD",dept:"TCP",name:"#10 Shim Selection"},
+  { line:"1PC LD",dept:"TCP",name:"#20 Reaction Block Selection and install"},
+  { line:"1PC LD",dept:"TCP",name:"#40 Pinion gears & Washers & Cross shaft and lockscrew"},
+  { line:"1PC LD",dept:"TCP",name:"#50 Lockout, Counter-weight bushings. Press to depth"},
+  { line:"1PC LD",dept:"TCP",name:"#60 Function Test & Stamping / Final Inspection & Packing"},
+  { line:"1PC LD",dept:"TCP",name:"Setup (Time: 47min)"},
+  { line:"1PC LD",dept:"TCP",name:"Dock Audit & Audit Test"},
+  { line:"1PC LD",dept:"TCP",name:"SPC 작성 및 조치 방법"},
+  { line:"1PC LD",dept:"TCP",name:"EHS (안전보건환경)"},
+  { line:"2PC ELD",dept:"TCP",name:"#00 Oil Soaking & Stator Assy"},
+  { line:"2PC ELD",dept:"TCP",name:"#05 Case Loading"},
+  { line:"2PC ELD",dept:"TCP",name:"#10 Shim selection"},
+  { line:"2PC ELD",dept:"TCP",name:"#20~30 Inner parts Assembly"},
+  { line:"2PC ELD",dept:"TCP",name:"#40 Case Assembly"},
+  { line:"2PC ELD",dept:"TCP",name:"#50 Back parts Assembly"},
+  { line:"2PC ELD",dept:"TCP",name:"#80 EOL Test"},
+  { line:"2PC ELD",dept:"TCP",name:"#90 Hub out dia, Bell out dia & Run out check"},
+  { line:"2PC ELD",dept:"TCP",name:"#100 Visual inspection Packing"},
+  { line:"2PC ELD",dept:"TCP",name:"Setup (Time: 60min)"},
+  { line:"2PC ELD",dept:"TCP",name:"EHS (안전보건환경)"},
+  { line:"2PCS LD",dept:"TCP",name:"#10 Shim Selection"},
+  { line:"2PCS LD",dept:"TCP",name:"#20~30 Assembling"},
+  { line:"2PCS LD",dept:"TCP",name:"#40 Looseness Test"},
+  { line:"2PCS LD",dept:"TCP",name:"#60 Runout Inspection"},
+  { line:"2PCS LD",dept:"TCP",name:"#80 Function Test & Stamping / Final Inspection & Packing"},
+  { line:"2PCS LD",dept:"TCP",name:"Setup (Time: 31min)"},
+  { line:"2PCS LD",dept:"TCP",name:"Dock Audit & Audit Test"},
+  { line:"2PCS LD",dept:"TCP",name:"SPC 작성 및 조치 방법"},
+  { line:"2PCS LD",dept:"TCP",name:"EHS (안전보건환경)"},
+  { line:"Y9",dept:"TCP",name:"#10 Assembling"},
+  { line:"Y9",dept:"TCP",name:"#20 Runout Inspection"},
+  { line:"Y9",dept:"TCP",name:"#30 Function Test"},
+  { line:"Y9",dept:"TCP",name:"#40 Lot Marking 완제품검사"},
+  { line:"Y9",dept:"TCP",name:"Setup (Time: 20min)"},
+  { line:"Y9",dept:"TCP",name:"EHS (안전보건환경)"},
+  { line:"DISK PACK",dept:"TCP",name:"#10 Gear Sub Assembly"},
+  { line:"DISK PACK",dept:"TCP",name:"#20 Break-In"},
+  { line:"DISK PACK",dept:"TCP",name:"EHS (안전보건환경)"},
+  { line:"DISK PACK",dept:"TCP",name:"Setup (Time: 5min)"},
+  { line:"Washing",dept:"TCP",name:"#10 부품식별"},
+  { line:"Washing",dept:"TCP",name:"#20 설비작동"},
+  { line:"Washing",dept:"TCP",name:"#30 세척액 관리"},
+  { line:"Washing",dept:"TCP",name:"#40 컨베이어 동작"},
+  { line:"Washing",dept:"TCP",name:"EHS (안전보건환경)"},
+  { line:"Washing",dept:"TCP",name:"Setup"},
+  // FE
+  { line:"FLVV Module Auto",dept:"FE",name:"#1 Module Assembly"},
+  { line:"FLVV Module Auto",dept:"FE",name:"#2 최종 육안 검사"},
+  { line:"FLVV Module Auto",dept:"FE",name:"Setup"},
+  { line:"FLVV Module Auto",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"FLVV Adapter",dept:"FE",name:"#1 Final Assembly / Leak Test"},
+  { line:"FLVV Adapter",dept:"FE",name:"#2 최종 육안 검사"},
+  { line:"FLVV Adapter",dept:"FE",name:"Setup"},
+  { line:"FLVV Adapter",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"FLVV Combo",dept:"FE",name:"#1 Combo Assembly"},
+  { line:"FLVV Combo",dept:"FE",name:"#2 최종 육안 검사"},
+  { line:"FLVV Combo",dept:"FE",name:"Setup"},
+  { line:"FLVV Combo",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"LVS",dept:"FE",name:"#1 Lid Weld & Leak Test"},
+  { line:"LVS",dept:"FE",name:"#2 FLVV A'ssy & Leak & Flow Tester"},
+  { line:"LVS",dept:"FE",name:"#3 GVV Assembly & Function Tester"},
+  { line:"LVS",dept:"FE",name:"#4 Final Leak Test & Marking"},
+  { line:"LVS",dept:"FE",name:"#5 Marking & 최종 육안 검사"},
+  { line:"LVS",dept:"FE",name:"Setup"},
+  { line:"LVS",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"MEMBRANE",dept:"FE",name:"#1 Membrane Assembly 조립"},
+  { line:"MEMBRANE",dept:"FE",name:"#2 최종 육안 검사"},
+  { line:"MEMBRANE",dept:"FE",name:"Setup"},
+  { line:"MEMBRANE",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"ICV-A",dept:"FE",name:"#1 Door Ass'y & Housing 조립"},
+  { line:"ICV-A",dept:"FE",name:"#2 Sub Ass'y & Clamp Spring 조립"},
+  { line:"ICV-A",dept:"FE",name:"#3 최종 육안 검사"},
+  { line:"ICV-A",dept:"FE",name:"Setup"},
+  { line:"ICV-A",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"ICV-B",dept:"FE",name:"#1 Door Ass'y & Housing"},
+  { line:"ICV-B",dept:"FE",name:"#2 최종 육안 검사"},
+  { line:"ICV-B",dept:"FE",name:"Setup"},
+  { line:"ICV-B",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"GVV",dept:"FE",name:"#1 Sub Assembly"},
+  { line:"GVV",dept:"FE",name:"#2 Weld Orifice plate"},
+  { line:"GVV",dept:"FE",name:"#3 Final Assembly"},
+  { line:"GVV",dept:"FE",name:"#4 Final Test / 최종 육안 검사"},
+  { line:"GVV",dept:"FE",name:"Setup"},
+  { line:"GVV",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"GVV Auto",dept:"FE",name:"#1 Sub Assembly"},
+  { line:"GVV Auto",dept:"FE",name:"#2 Final Assembly"},
+  { line:"GVV Auto",dept:"FE",name:"#3 Final Test / 최종 육안 검사"},
+  { line:"GVV Auto",dept:"FE",name:"Setup"},
+  { line:"GVV Auto",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"UCC",dept:"FE",name:"#1 Sub Assembly"},
+  { line:"UCC",dept:"FE",name:"#2 FLVV and GVV assembly"},
+  { line:"UCC",dept:"FE",name:"#3 Final Test / 최종 육안 검사"},
+  { line:"UCC",dept:"FE",name:"Setup"},
+  { line:"UCC",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"FTIV",dept:"FE",name:"#1 Armature final assembly"},
+  { line:"FTIV",dept:"FE",name:"#2 Coil Sub & Tube sub assembly"},
+  { line:"FTIV",dept:"FE",name:"#3 Final Assembly / 최종 육안 검사"},
+  { line:"FTIV",dept:"FE",name:"Setup"},
+  { line:"FTIV",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"ES-TEST",dept:"FE",name:"#1 ES-Test"},
+  { line:"ES-TEST",dept:"FE",name:"Setup"},
+  { line:"ES-TEST",dept:"FE",name:"EHS (안전보건환경)"},
+  { line:"Sub A'ssy",dept:"FE",name:"#1 Sub Assembly"},
+  { line:"Sub A'ssy",dept:"FE",name:"Setup"},
+  { line:"Sub A'ssy",dept:"FE",name:"EHS (안전보건환경)"}
+];
+const COMPANY_TRAINEES = [
+  {name:"박춘성",dept:"TCP",joinDate:"2004-07-01",photo:""},
+  {name:"류정식",dept:"TCP",joinDate:"2014-02-17",photo:""},
+  {name:"김동영",dept:"TCP",joinDate:"2015-06-30",photo:""},
+  {name:"엄인순",dept:"TCP",joinDate:"2001-02-06",photo:""},
+  {name:"황상일",dept:"TCP",joinDate:"2013-10-02",photo:""},
+  {name:"김혜민",dept:"TCP",joinDate:"2015-01-01",photo:""},
+  {name:"이호인",dept:"TCP",joinDate:"2020-07-15",photo:""},
+  {name:"정지호",dept:"TCP",joinDate:"2020-09-28",photo:""},
+  {name:"최용환",dept:"TCP",joinDate:"2020-12-01",photo:""},
+  {name:"이동욱",dept:"TCP",joinDate:"2021-11-05",photo:""},
+  {name:"김동현",dept:"TCP",joinDate:"2022-01-17",photo:""},
+  {name:"김성웅",dept:"TCP",joinDate:"2022-10-25",photo:""},
+  {name:"김욱광",dept:"TCP",joinDate:"2023-04-19",photo:""},
+  {name:"윤종성",dept:"TCP",joinDate:"2023-05-22",photo:""},
+  {name:"조명훈",dept:"TCP",joinDate:"2023-06-01",photo:""},
+  {name:"이준호",dept:"TCP",joinDate:"2024-09-02",photo:""},
+  {name:"김수빈",dept:"TCP",joinDate:"2025-06-04",photo:""},
+  {name:"김나영",dept:"FE",joinDate:"2014-12-05",photo:""},
+  {name:"황숙향",dept:"FE",joinDate:"2003-06-01",photo:""},
+  {name:"임혜윰",dept:"FE",joinDate:"2019-11-11",photo:""},
+  {name:"박은숙",dept:"FE",joinDate:"2010-07-19",photo:""},
+  {name:"김상숙",dept:"FE",joinDate:"2019-10-01",photo:""},
+  {name:"정다영",dept:"FE",joinDate:"2019-11-11",photo:""},
+  {name:"최수경",dept:"FE",joinDate:"2015-11-11",photo:""},
+  {name:"정성신",dept:"FE",joinDate:"2019-03-12",photo:""},
+  {name:"권미정",dept:"FE",joinDate:"2024-09-20",photo:""},
+  {name:"맹지수",dept:"FE",joinDate:"2025-07-01",photo:""},
+  {name:"서연옥",dept:"FE",joinDate:"2025-07-02",photo:""},
+  {name:"김아람",dept:"FE",joinDate:"2025-12-29",photo:""},
+  {name:"정재은",dept:"FE",joinDate:"2025-12-04",photo:""},
+  {name:"맹지현",dept:"FE",joinDate:"2026-03-16",photo:""}
+];
+
+// ============ 스킬 평가 항목 (회사 Skill Evaluation Sheet 양식) ============
+const DEFAULT_EVAL_CRITERIA = [
+  {no:1, title:"작업표준의 방법으로 공정을 수행 하는가?",
+   lv0:"숙달자 및 관리자 도움없이 작업 불가",
+   lv5:"조립 작업만 가능/ 그 외 M/Check 및 안전 체크 도움 필요",
+   lv10:"도움없이 생산 가능함", max:10},
+  {no:2, title:"공정의 Key 특성을 숙지하고 있는가?",
+   lv0:"Key 특성을 숙지 못함",
+   lv5:"공정은 이해하였으나 Key 특성은 이해 못함",
+   lv10:"공정의 Key 특성을 숙지함 (특별특성)", max:10},
+  {no:3, title:"설비의 Setup을 절차에 따라 수행하고 Setup Time 만족하는가?",
+   lv0:"LOTOV 교육 미이수자로 Tool 교체 못함",
+   lv5:"LOTOV 교육 완료하였으나 Tool 교체 시간 내 못함",
+   lv10:"LOTOV 교육 완료 및 Tool 교체 시간 만족함", max:10},
+  {no:4, title:"설비의 조작을 숙지하고 있는가? (고장 및 오동작)",
+   lv0:"설비 이상 시 조작 못함",
+   lv5:"설비 Home 작업 방법은 교육 받았으나 조작 못함",
+   lv10:"숙지 및 조작 가능함", max:10},
+  {no:5, title:"제품의 육안 검사 항목을 숙지 하고 있는가?",
+   lv0:"검사 항목 및 불량품에 대한 이해 못함",
+   lv5:"검사 항목은 숙지하였으나 불량 검출은 못함",
+   lv10:"숙지 및 불량 검출 가능", max:10},
+  {no:6, title:"공정의 품질 특성을 전부 숙지 하고 있는가?",
+   lv0:"공정의 품질 특성을 이해 못함",
+   lv5:"공정은 이해하였으나 품질 특성에 대한 이해는 못함",
+   lv10:"공정 및 제품 품질에 대해 이해함", max:10},
+  {no:7, title:"공정의 안전 보건에 관련된 것을 숙지 하고 있는가?",
+   lv0:"안전 체크 방법과 안전 표지 위치, 근골격계 예방 이해 못함",
+   lv5:"근골격계 예방 목적은 이해하였으나 안전 체크 방법 미흡",
+   lv10:"안전 체크 방법, 안전 표지, 근골격계 예방 모두 숙지", max:10},
+  {no:8, title:"단품의 식별(유사품) 방법을 숙지 하고 있는가?",
+   lv0:"단품 실물 및 라벨 정보 식별 방법 숙지 안됨",
+   lv5:"단품 실물은 구분하나, 라벨 정보 이해는 미흡함",
+   lv10:"단품 및 라벨 정보 숙지 완료함", max:10},
+  {no:9, title:"작업자 공정 Cycle Time이 Standard Work Cycle Time을 만족하는가?",
+   lv0:"C/T 만족하지 못함(계획 대비 -50%)",
+   lv5:"C/T 만족하지 못함(계획 대비 -30%)",
+   lv10:"C/T 만족함(생산 수량 100% 달성)", max:10},
+  {no:10, title:"제품 생산시 품질 부적합 발생시에 미치는 영향을 알고 있는가?",
+   lv0:"제품에 대한 이해 및 불량 문제 이해 못함",
+   lv5:"불량 문제는 숙지하였으나 제품 성능/기능/역할 인지 부족",
+   lv10:"제품에 대한 이해 및 불량 문제점 숙지", max:10}
+];
+// EVAL_CRITERIA는 하위호환용 (기존 코드 참조)
+const EVAL_CRITERIA = DEFAULT_EVAL_CRITERIA;
+
+// ============ EHS 전용 스킬 평가 항목 ============
+const DEFAULT_EHS_CRITERIA = [
+  {no:1, title:"작업장 안전수칙 및 PPE(보호구) 착용을 숙지하고 준수하는가?",
+   lv0:"안전수칙 및 보호구 착용 방법을 이해 못함",
+   lv5:"보호구 착용은 하나 안전수칙 이해 미흡",
+   lv10:"안전수칙 숙지 및 보호구 올바르게 착용", max:10},
+  {no:2, title:"위험성 평가(위험요인) 및 아차사고를 인지하고 있는가?",
+   lv0:"공정 내 위험요인을 인지 못함",
+   lv5:"위험요인은 알지만 대응 방법 미흡",
+   lv10:"위험요인 인지 및 예방/대응 가능", max:10},
+  {no:3, title:"LOTO(잠금·표지) 및 설비 비상정지 절차를 숙지하는가?",
+   lv0:"LOTO 및 비상정지 절차 이해 못함",
+   lv5:"절차는 교육 받았으나 실행 미흡",
+   lv10:"LOTO 및 비상정지 절차 숙지 및 실행 가능", max:10},
+  {no:4, title:"화학물질(MSDS) 및 폐기물 취급 방법을 숙지하는가?",
+   lv0:"화학물질/폐기물 취급 방법 이해 못함",
+   lv5:"취급 방법은 알지만 MSDS 이해 미흡",
+   lv10:"MSDS 숙지 및 화학물질/폐기물 올바르게 취급", max:10},
+  {no:5, title:"비상시 대피 경로 및 소화기 사용법을 숙지하는가?",
+   lv0:"대피 경로 및 소화기 사용법 이해 못함",
+   lv5:"대피 경로는 알지만 소화기 사용 미흡",
+   lv10:"대피 경로 및 소화기 사용법 숙지", max:10},
+  {no:6, title:"근골격계 질환 예방 및 올바른 작업자세를 실천하는가?",
+   lv0:"근골격계 예방 및 작업자세 이해 못함",
+   lv5:"예방 목적은 이해하나 실천 미흡",
+   lv10:"근골격계 예방 및 올바른 작업자세 실천", max:10}
+];
+function getEHSCriteria() {
+  return state.settings.ehsCriteria || JSON.parse(JSON.stringify(DEFAULT_EHS_CRITERIA));
+}
+// EHS 공정 여부 판별 (공정명에 EHS 또는 안전보건환경 포함)
+function isEHSProcess(proc) {
+  if (!proc) return false;
+  const n = (proc.name||"");
+  return n.includes("EHS") || n.includes("안전보건") || n.includes("안전 보건");
+}
+
+// 현재 설정의 평가 기준 가져오기 (공정이 EHS면 EHS 기준, 아니면 일반 기준)
+function getEvalCriteria(proc) {
+  if (proc && isEHSProcess(proc)) return getEHSCriteria();
+  return state.settings.evalCriteria || JSON.parse(JSON.stringify(DEFAULT_EVAL_CRITERIA));
+}
+
+// 교육일지 평가 항목 (교육 만족도 - 스킬 레벨과 무관)
+const LOG_EVAL_ITEMS = [
+  "교육 내용 및 자료에 대한 만족도",
+  "전반적인 교육내용 이해도",
+  "교육내용의 지식 습득 및 업무활용도",
+  "향후 유사 교육 참여 희망",
+  "교육에 대한 전반적인 평가"
+];
+
+// ============ 저장소 & 동기화 ============
+// 브라우저 저장소 키 — 같은 github.io 도메인의 기존(Google판) 앱과 섞이지 않도록 _SB 접미사
+const LOGS_KEY = "tcp_training_logs_v5_SB";
+const SETTINGS_KEY = "tcp_training_settings_v5_SB";
+const PLANS_KEY = "tcp_training_plans_v5_SB";
+const EVALS_KEY = "tcp_skill_evals_v5_SB";
+const ADMIN_PASSWORD = "Eaton12!@";
+const APP_VERSION = "v1S (2026-10-27)";
+
+// ============ 서버 설정 (변경 불필요 — 코드 고정) ============
+const SB_URL_DEFAULT = "https://tmbeaswlpvsyjehacgsa.supabase.co";
+const SB_KEY_DEFAULT = "sb_publishable_OM6ITpYn8LYPWXXhwdA4kQ_HuAyAxV9";
+const SB_SECTION = "TRAINING";
+const SB_URL = localStorage.getItem("sb_url_tr") || SB_URL_DEFAULT;
+const SB_KEY = localStorage.getItem("sb_key_tr") || SB_KEY_DEFAULT;
+// 기존 Google(GAS) 저장소 — 1회 데이터 이관용으로만 사용
+const OLD_GAS_URL = "https://script.google.com/macros/s/AKfycbyMp1z2Ufy1bCuT-EwsDOj6KWlyQc2PtSJbx6ozTybl8XGE7sTzB5GbrDCpECC_1P5X/exec";
+let _sbClient = null, sbUser = null, sbRole = null, sbReady = false;
+function sbc() {
+  if (!_sbClient && window.supabase) {
+    _sbClient = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+  }
+  return _sbClient;
+}
+
+// 인원별 현황 배지용 라인 짧은 표시명
+const LINE_SHORT = {
+  // TCP
+  "1PC LD":"1PC", "2PC ELD":"2PC ELD", "2PCS LD":"2PC LD", "Y9":"Y9", "DISK PACK":"Pack", "Washing":"Washing",
+  // FE
+  "FLVV Adapter":"M/FLVV", "FLVV Module Auto":"A/FLVV", "FLVV Combo":"C/FLVV", "LVS":"LVS", "MEMBRANE":"MEM",
+  "ICV-A":"ICV-A", "ICV-B":"ICV-B", "GVV Auto":"A/GVV", "GVV":"M/GVV", "UCC":"UCC", "FTIV":"FTIV", "ES-TEST":"ES-TEST"
+};
+// 배지 라인 표시 순서 (실제 line 이름 기준, 화면 표시: A/FLVV, M/FLVV, C/FLVV ...)
+const LINE_ORDER = {
+  TCP: ["1PC LD", "2PC ELD", "2PCS LD", "Y9", "DISK PACK", "Washing"],
+  FE:  ["FLVV Module Auto", "FLVV Adapter", "FLVV Combo", "LVS", "MEMBRANE",
+        "ICV-A", "ICV-B", "GVV", "GVV Auto", "UCC", "FTIV", "ES-TEST"]
+};
+// 배지에서 제외할 라인 (Sub 등)
+const LINE_EXCLUDE = ["Sub A'ssy"];
+function lineShort(ln){ return LINE_SHORT[ln] || ln; }
+// 엑셀 헤더용: 실제 라인명 + 축약명 (예: "FLVV Module Auto (M/FLVV)")
+function lineLabelFull(ln){ const s = LINE_SHORT[ln]; return (s && s !== ln) ? `${ln} (${s})` : ln; }
+// 부서 지정 순서로 라인 정렬 (지정 안 된 라인은 뒤에 데이터 순서로)
+function orderLines(lines, dept){
+  const order = LINE_ORDER[dept] || [];
+  const inOrder = order.filter(l => lines.includes(l));
+  const rest = lines.filter(l => !order.includes(l));
+  return [...inOrder, ...rest];
+}
+// 공정 배열을 라인 지정 순서로 정렬 (라인 내 공정 순서는 원본 유지)
+function sortProcsByLineOrder(procs, dept){
+  const order = LINE_ORDER[dept] || [];
+  const rank = ln => { const i = order.indexOf(ln); return i < 0 ? 999 : i; };
+  return procs.map((p,i)=>({p,i})).sort((a,b)=>{
+    const r = rank(a.p.line) - rank(b.p.line);
+    return r !== 0 ? r : a.i - b.i;  // 같은 라인은 원본 순서
+  }).map(x=>x.p);
+}
+
+let syncStatus = { last:"", error:"", syncing:false };
+
+// ============ 동기화 큐 (순차 처리로 데이터 유실 방지) ============
+let _syncQueue = Promise.resolve();
+let _syncPending = false;
+
+// 서버 저장 — 전체 상태(settings/logs/plans/evals)를 prod_state 테이블에 섹션별 4행으로 저장
+async function syncToGoogle(type) {
+  const c = sbc(); if (!c || !sbReady) return;
+  _syncPending = true;
+  _syncQueue = _syncQueue.then(async () => {
+    syncStatus.syncing = true; updateSyncBadge();
+    try {
+      const now = new Date().toISOString(), by = sbUser ? sbUser.email : "";
+      const rows = [
+        { section: SB_SECTION, key: "settings", data: state.settings, updated_at: now, updated_by: by },
+        { section: SB_SECTION, key: "logs",     data: state.logs,     updated_at: now, updated_by: by },
+        { section: SB_SECTION, key: "plans",    data: state.plans,    updated_at: now, updated_by: by },
+        { section: SB_SECTION, key: "evals",    data: state.evals,    updated_at: now, updated_by: by }
+      ];
+      const { error } = await c.from("prod_state").upsert(rows, { onConflict: "section,key" });
+      if (error) throw error;
+      syncStatus.last = new Date().toLocaleString("ko-KR"); syncStatus.error = "";
+    } catch(err) {
+      syncStatus.error = err.message || String(err);
+    }
+    syncStatus.syncing = false; _syncPending = false; updateSyncBadge();
+  }).catch(err => {
+    syncStatus.error = err.message || String(err); syncStatus.syncing = false; _syncPending = false; updateSyncBadge();
+  });
+  return _syncQueue;
+}
+
+// 서버 불러오기 — prod_state(section=TRAINING) 4행을 받아 state에 반영
+async function syncFromGoogle() {
+  const c = sbc(); if (!c) return false;
+  if (_syncPending) { return false; }
+  syncStatus.syncing = true; updateSyncBadge();
+  try {
+    const { data, error } = await c.from("prod_state").select("key,data").eq("section", SB_SECTION);
+    if (error) throw error;
+    let updated = false;
+    (data || []).forEach(r => {
+      if (r.key === "settings" && r.data && typeof r.data === "object" && r.data.lines) {
+        state.settings = r.data; localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings)); updated = true;
+      } else if (r.key === "logs" && Array.isArray(r.data)) {
+        state.logs = r.data; localStorage.setItem(LOGS_KEY, JSON.stringify(state.logs)); updated = true;
+      } else if (r.key === "plans" && Array.isArray(r.data)) {
+        state.plans = r.data; localStorage.setItem(PLANS_KEY, JSON.stringify(state.plans)); updated = true;
+      } else if (r.key === "evals" && Array.isArray(r.data)) {
+        state.evals = r.data; localStorage.setItem(EVALS_KEY, JSON.stringify(state.evals)); updated = true;
+      }
+    });
+    syncStatus.last = new Date().toLocaleString("ko-KR"); syncStatus.error = "";
+    syncStatus.syncing = false; updateSyncBadge(); return updated;
+  } catch(err) { syncStatus.error = err.message || String(err); }
+  syncStatus.syncing = false; updateSyncBadge(); return false;
+}
+
+// 기존 Google(GAS) 저장소에서 1회 데이터 가져오기 → 서버에 올림
+async function migrateFromGoogle() {
+  const c = sbc(); if (!c || !sbReady) { alert("로그인 후 이용하세요."); return; }
+  if (!confirm("기존 Google 저장소의 교육일지 데이터를 이 서버로 가져옵니다.\n(기존 Google 데이터는 그대로 두고 복사만 합니다)\n계속할까요?")) return;
+  try {
+    syncStatus.syncing = true; updateSyncBadge();
+    const resp = await fetch(OLD_GAS_URL + "?type=all");
+    const result = await resp.json();
+    if (!result || !result.success) { alert("Google 데이터를 가져오지 못했습니다."); syncStatus.syncing = false; updateSyncBadge(); return; }
+    if (result.settings && result.settings.lines) state.settings = result.settings;
+    if (Array.isArray(result.logs)) state.logs = result.logs;
+    if (Array.isArray(result.plans)) state.plans = result.plans;
+    if (Array.isArray(result.evals)) state.evals = result.evals;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    localStorage.setItem(LOGS_KEY, JSON.stringify(state.logs));
+    localStorage.setItem(PLANS_KEY, JSON.stringify(state.plans));
+    localStorage.setItem(EVALS_KEY, JSON.stringify(state.evals));
+    await syncToGoogle("all");
+    render();
+    alert("✅ 이관 완료\n교육일지 " + (state.logs||[]).length + "건, 스킬평가 " + (state.evals||[]).length + "건을 가져왔습니다.");
+  } catch(err) {
+    alert("이관 실패: " + (err.message || err));
+  }
+  syncStatus.syncing = false; updateSyncBadge();
+}
+
+// ============ 로그인 / 서버 게이트 ============
+function sbOverlay(html){
+  let el = document.getElementById("sbOverlay");
+  if(!el){ el = document.createElement("div"); el.id="sbOverlay";
+    el.style.cssText="position:fixed;inset:0;z-index:9999;background:#f3f4f6;display:flex;align-items:center;justify-content:center;padding:20px;";
+    document.body.appendChild(el); }
+  el.innerHTML = html; el.style.display="flex";
+}
+function sbHideOverlay(){ const el=document.getElementById("sbOverlay"); if(el) el.style.display="none"; }
+function showGate(msg){
+  sbOverlay('<div style="text-align:center;color:#374151;">'+
+    '<div style="width:44px;height:44px;border:4px solid #d1d5db;border-top-color:#2563eb;border-radius:50%;margin:0 auto 16px;animation:sbspin 0.8s linear infinite;"></div>'+
+    '<div style="font-size:15px;">'+(msg||"불러오는 중…")+'</div></div>'+
+    '<style>@keyframes sbspin{to{transform:rotate(360deg)}}</style>');
+}
+function showLogin(errMsg){
+  sbOverlay(
+    '<div style="width:100%;max-width:360px;background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.12);padding:28px;">'+
+      '<div style="text-align:center;margin-bottom:20px;">'+
+        '<div style="font-size:30px;">📘</div>'+
+        '<div style="font-size:18px;font-weight:bold;color:#1f2937;margin-top:6px;">MFG 교육 관리 시스템</div>'+
+        '<div style="font-size:12px;color:#9ca3af;margin-top:2px;">로그인</div>'+
+      '</div>'+
+      (errMsg?('<div style="background:#fef2f2;color:#b91c1c;font-size:12px;border-radius:8px;padding:8px 10px;margin-bottom:12px;">'+errMsg+'</div>'):'')+
+      '<input id="sbEmail" type="email" placeholder="이메일" autocomplete="username" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">'+
+      '<input id="sbPw" type="password" placeholder="비밀번호" autocomplete="current-password" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:16px;box-sizing:border-box;">'+
+      '<button id="sbLoginBtn" style="width:100%;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;">로그인</button>'+
+    '</div>');
+  const btn=document.getElementById("sbLoginBtn");
+  const em=document.getElementById("sbEmail"), pw=document.getElementById("sbPw");
+  const go=()=>sbLogin(em.value.trim(), pw.value);
+  btn.addEventListener("click", go);
+  pw.addEventListener("keydown", e=>{ if(e.key==="Enter") go(); });
+  em.focus();
+}
+async function sbLogin(email, password){
+  const c = sbc(); if(!c){ showLogin("로그인 모듈을 불러오지 못했습니다. 새로고침 해주세요."); return; }
+  if(!email || !password){ showLogin("이메일과 비밀번호를 입력하세요."); return; }
+  showGate("로그인 중…");
+  const { data, error } = await c.auth.signInWithPassword({ email, password });
+  if(error){ showLogin("이메일 또는 비밀번호가 올바르지 않습니다."); return; }
+  await afterLogin(data.user);
+}
+async function afterLogin(user){
+  const c = sbc();
+  try {
+    sbUser = user || (await c.auth.getUser()).data.user;
+    const { data: role } = await c.rpc("my_role");
+    if(!role){ await c.auth.signOut(); sbUser=null; sbRole=null; showLogin("승인되지 않은 계정입니다. 관리자에게 문의하세요."); return; }
+    sbRole = role;
+    showGate("데이터 불러오는 중…");
+    sbReady = true;
+    const u = await syncFromGoogle();
+    render();
+    sbHideOverlay();
+    if(!syncStatus.error && !u && state.settings && state.settings.lines && state.settings.lines.length>0){ syncToGoogle("all"); }
+  } catch(err){
+    showLogin("로그인 처리 중 오류: " + (err.message||err));
+  }
+}
+async function sbLogout(){
+  const c = sbc(); if(c){ try{ await c.auth.signOut(); }catch(e){} }
+  sbUser=null; sbRole=null; sbReady=false;
+  location.reload();
+}
+
+function updateSyncBadge() {
+  const el = document.getElementById("syncBadge");
+  if (!el) return;
+  if (syncStatus.syncing) el.innerHTML = '<span class="text-blue-600">⟳ 저장 중...</span>';
+  else if (syncStatus.error) el.innerHTML = '<span class="text-red-600" title="'+syncStatus.error+'">⚠ 저장 실패 (재시도: 새로고침)</span>';
+  else if (syncStatus.last) el.innerHTML = '<span class="text-green-600">✅ 저장됨 '+syncStatus.last+'</span>';
+  else el.innerHTML = '<span class="text-gray-400">☁</span>';
+}
+
+// ============ 로드/세이브 ============
+function loadLogs() { try { return JSON.parse(localStorage.getItem(LOGS_KEY)||"[]"); } catch(e) { return []; } }
+function saveLogs(l) { localStorage.setItem(LOGS_KEY, JSON.stringify(l)); syncToGoogle("logs"); }
+function loadPlans() { try { return JSON.parse(localStorage.getItem(PLANS_KEY)||"[]"); } catch(e) { return []; } }
+function savePlans(p) { localStorage.setItem(PLANS_KEY, JSON.stringify(p)); syncToGoogle("plans"); }
+function loadEvals() { try { return JSON.parse(localStorage.getItem(EVALS_KEY)||"[]"); } catch(e) { return []; } }
+function saveEvals(e) { localStorage.setItem(EVALS_KEY, JSON.stringify(e)); syncToGoogle("evals"); }
+
+function buildInitialProcesses() { return COMPANY_PROCESSES.map((p,i)=>({id:i+1,line:p.line,name:p.name,content:""})); }
+function buildDeptRequired(d) { return COMPANY_PROCESSES.map((p,i)=>p.dept===d?i+1:null).filter(v=>v!==null); }
+
+const DEFAULT_SETTINGS = {
+  lines:["1PC LD","2PC ELD","2PCS LD","Y9","DISK PACK","Washing","Audit test",
+         "FLVV Module Auto","FLVV Adapter","FLVV Combo","LVS","MEMBRANE",
+         "ICV-A","ICV-B","GVV","GVV Auto","UCC","FTIV","ES-TEST","Sub A'ssy"],
+  departments:[
+    {name:"TCP",requiredProcessIds:buildDeptRequired("TCP"),manager:"박춘성"},
+    {name:"FE",requiredProcessIds:buildDeptRequired("FE"),manager:""}
+  ],
+  evalMethods:["시험","구두질문","Rating에 의한 평가","기타"],
+  instructors:[
+    {name:"박춘성",position:"리더",dept:"TCP",isManager:true,isReviewer:false,password:""},
+    {name:"류정식",position:"조장",dept:"TCP",isManager:false,isReviewer:true,password:""},
+    {name:"김동영",position:"리더",dept:"TCP",isManager:false,isReviewer:false,password:""}
+  ],
+  trainees:COMPANY_TRAINEES,
+  processes:buildInitialProcesses()
+};
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if (!s || !s.lines) return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    for (const k of Object.keys(DEFAULT_SETTINGS)) if (!s[k]) s[k] = JSON.parse(JSON.stringify(DEFAULT_SETTINGS[k]));
+    return s;
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); }
+}
+function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); syncToGoogle("settings"); }
+
+// ============ State ============
+let state = {
+  view:"stats", settingsTab:"lines", currentLog:null, currentEval:null,
+  editingProcessIdx:-1, selectedTrainee:null, settingsUnlocked:false,
+  statsFilterDept:"", skillFilterDept:"", skillFilterLine:"",
+  scheduleFilterDept:"", scheduleFilter:"all",
+  logs:loadLogs(), settings:loadSettings(), plans:loadPlans(), evals:loadEvals()
+};
+
+function findProcess(id) { return state.settings.processes.find(p=>p.id===id); }
+function nextProcessId() {
+  const ids = (state.settings.processes||[]).map(p=>Number(p.id)).filter(n=>!isNaN(n));
+  return ids.length ? Math.max(...ids) + 1 : 1;
+}
+// 라인이 속한 부서 찾기 (그 라인의 공정이 포함된 부서)
+function deptOfLine(line) {
+  if (!line) return null;
+  const procIds = state.settings.processes.filter(p=>p.line===line).map(p=>p.id);
+  const dept = (state.settings.departments||[]).find(d =>
+    (d.requiredProcessIds||[]).some(pid => procIds.includes(pid))
+  );
+  return dept ? dept.name : null;
+}
+
+// 퇴사 여부 확인
+function isResigned(traineeName) {
+  const t = state.settings.trainees.find(x => x.name === traineeName);
+  return t && t.resignDate && t.resignDate <= new Date().toISOString().slice(0,10);
+}
+
+// ============ 자동 교육일정 생성 (입사일 기준 2주 후부터 1달 간격) ============
+function generateAutoSchedule(traineeName) {
+  const trainee = state.settings.trainees.find(t=>t.name===traineeName);
+  if (!trainee || !trainee.joinDate || !trainee.dept) return 0;
+  if (trainee.resignDate) return 0; // 퇴사자는 일정 생성 안 함
+  const dept = (state.settings.departments||[]).find(d=>d.name===trainee.dept);
+  if (!dept) return 0;
+  const requiredIds = dept.requiredProcessIds || [];
+  const existingPlanPids = new Set(state.plans.filter(p=>p.traineeName===traineeName && (p.type||"training")==="training").map(p=>p.processId));
+  const donePids = new Set(state.logs.filter(l=>(l.trainees||[]).includes(traineeName)).map(l=>l.processId));
+
+  const startDate = new Date(trainee.joinDate);
+  startDate.setDate(startDate.getDate() + 14); // 2주 후
+
+  let added = 0;
+  requiredIds.forEach((pid, idx) => {
+    if (existingPlanPids.has(pid) || donePids.has(pid)) return;
+    const planDate = new Date(startDate);
+    planDate.setMonth(planDate.getMonth() + idx); // 1달 간격
+    state.plans.push({
+      traineeName, processId:pid,
+      plannedDate: planDate.toISOString().slice(0,10),
+      status:"planned", type:"training", autoGenerated:true
+    });
+    added++;
+  });
+  if (added > 0) savePlans(state.plans);
+  return added;
+}
+
+// 공정교육 완료 시 → 6개월 뒤 스킬평가 일정 자동 생성
+function generateSkillEvalSchedule(traineeName, processId, trainingDate) {
+  if (isResigned(traineeName)) return; // 퇴사자는 일정 생성 안 함
+  // 해당 인원+공정에 planned 상태의 스킬평가 일정이 이미 있으면 중복 생성 안 함
+  const exists = state.plans.some(p =>
+    p.traineeName === traineeName && p.processId === processId && p.type === "skillEval" && p.status === "planned"
+  );
+  if (exists) return;
+
+  const evalDate = new Date(trainingDate);
+  evalDate.setMonth(evalDate.getMonth() + 6);
+  state.plans.push({
+    traineeName, processId,
+    plannedDate: evalDate.toISOString().slice(0,10),
+    status: "planned", type: "skillEval", autoGenerated: true
+  });
+  savePlans(state.plans);
+}
+
+// ============ 스킬 레벨 판정 (스킬 평가 점수 기반) ============
+function getSkillLevel(traineeName, processId) {
+  // 스킬 평가에서 해당 인원+공정의 최신/최고 점수 조회
+  const matchingEvals = state.evals.filter(e =>
+    e.traineeName === traineeName && e.processId === processId
+  );
+  // 교육일지에서 이수 여부 확인
+  const hasLog = state.logs.some(l =>
+    l.processId === processId && (l.trainees||[]).includes(traineeName)
+  );
+
+  if (matchingEvals.length === 0) {
+    return { level:0, score:null, trained:hasLog, lastDate:null, evals:[] };
+  }
+
+  // 최고 점수 채택
+  const bestEval = matchingEvals.reduce((best,e) => (e.totalScore||0)>(best.totalScore||0)?e:best, matchingEvals[0]);
+  const score = bestEval.totalScore || 0;
+  const lastDate = bestEval.evalDate || bestEval.createdAt;
+
+  let level = 0;
+  if (score >= 81) level = 4;
+  else if (score >= 61) level = 3;
+  else if (score >= 41) level = 2;
+  else if (score >= 21) level = 1;
+
+  return { level, score, trained:hasLog, lastDate, evals:matchingEvals };
+}
+
+const SKILL_COLORS = {
+  0:{bg:"bg-gray-100",text:"text-gray-400",hex:"#f3f4f6"},
+  1:{bg:"bg-yellow-200",text:"text-yellow-900",hex:"#fef08a"},
+  2:{bg:"bg-lime-300",text:"text-lime-900",hex:"#bef264"},
+  3:{bg:"bg-green-500",text:"text-white",hex:"#22c55e"},
+  4:{bg:"bg-emerald-700",text:"text-white",hex:"#047857"}
+};
+const SKILL_RANGE = {0:"0~20",1:"21~40",2:"41~60",3:"61~80",4:"81~100"};
+
+// ============ 새 교육일지 ============
+function newLog() {
+  const today = new Date().toISOString().slice(0,10);
+  return {
+    id:Date.now(), line:"", processId:null, courseName:"",
+    instructorName:"", instructorPosition:"", instructorDept:"",
+    startDate:today, endDate:today, hours:2,
+    evalMethod:state.settings.evalMethods[2]||"Rating에 의한 평가",
+    trainees:[], content:"",
+    instructorEval:"교육 내용 이해하였으며, 표준대로 작업함. 제품 특성에 대한 지속적인 교육 예정",
+    scores:[5,5,5,5,5], opinion:"",
+    approvers:{ instructor:{name:"",approved:false,approvedAt:""}, reviewer:{name:"",approved:false,approvedAt:""}, manager:{name:"",approved:false,approvedAt:""} },
+    createdAt:new Date().toISOString()
+  };
+}
+
+// ============ 새 스킬 평가 ============
+function newEval() {
+  const today = new Date().toISOString().slice(0,10);
+  return {
+    id:Date.now(), traineeName:"", processId:null, line:"",
+    evaluatorName:"", evalDate:today, period:"",
+    scores:Array(10).fill(0), contents:Array(10).fill(""), remarks:Array(10).fill(""),
+    totalScore:0, level:0,
+    approvers:{ instructor:{name:"",approved:false,approvedAt:""}, reviewer:{name:"",approved:false,approvedAt:""}, manager:{name:"",approved:false,approvedAt:""} },
+    createdAt:new Date().toISOString()
+  };
+}
+
+// ============ Render ============
+function render() {
+  const app = document.getElementById("app");
+  const views = {
+    stats:renderStats, skill:renderSkill, schedule:renderSchedule,
+    list:renderList, edit:renderEdit, print:renderPrint,
+    evalList:renderEvalList, evalForm:renderEvalForm, evalPrint:renderEvalPrint,
+    approvals:renderApprovals, settings:renderSettings
+  };
+  const fn = views[state.view];
+  app.innerHTML = fn ? fn() : renderStats();
+  attachHandlers();
+}
+
+function countPendingApprovals() {
+  let c = 0;
+  state.logs.forEach(l => { const a=l.approvers; if(a && (!a.instructor.approved || (a.reviewer&&a.reviewer.name&&!a.reviewer.approved) || !a.manager.approved)) c++; });
+  state.evals.forEach(e => { const a=e.approvers; if(a && (!a.instructor.approved || (a.reviewer&&a.reviewer.name&&!a.reviewer.approved) || !a.manager.approved)) c++; });
+  return c;
+}
+
+function deptTabs(active, filterKey, setAction) {
+  const depts = (state.settings.departments||[]).map(d=>d.name);
+  if (!state[filterKey] && depts.length>0) state[filterKey] = depts[0];
+  return `<div class="flex gap-1 mb-3 no-print">${depts.map(d=>`
+    <button data-action="${setAction}" data-dept="${d}" class="px-4 py-2 rounded-t-lg font-semibold text-sm ${state[filterKey]===d?'bg-blue-600 text-white shadow':'bg-gray-200 text-gray-700 hover:bg-gray-300'}">${d}</button>
+  `).join("")}</div>`;
+}
+
+function navBar(active) {
+  const p = countPendingApprovals();
+  return `
+  <div class="flex gap-2 mb-2 no-print flex-wrap items-center">
+    <button data-action="goStats" class="${active==='stats'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">📊 인원별 현황</button>
+    <button data-action="goSkill" class="${active==='skill'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">🎯 스킬맵</button>
+    <button data-action="goSchedule" class="${active==='schedule'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">📅 교육일정</button>
+    <button data-action="goList" class="${active==='list'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">📋 교육일지</button>
+    <button data-action="goEvalList" class="${active==='evalList'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">📝 스킬평가</button>
+    <button data-action="goApprovals" class="${active==='approvals'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">✅ 결재함${p>0?' <span class="bg-red-600 text-white px-1.5 py-0.5 rounded-full text-xs">'+p+'</span>':''}</button>
+    <button data-action="goSettings" class="${active==='settings'?'bg-blue-600 text-white':'bg-white text-gray-700'} px-4 py-2 rounded-lg font-medium shadow">⚙️ 설정</button>
+    <div class="ml-auto flex items-center gap-2 text-xs">
+      <span class="text-gray-400 font-mono" title="앱 버전">${APP_VERSION}</span>
+      <span id="syncBadge"><span class="text-gray-400">☁</span></span>
+    </div>
+  </div>`;
+}
+
+// ============ 📊 인원별 현황 ============
+function renderStats() {
+  const allDepts = (state.settings.departments||[]).map(d=>d.name);
+  if (!state.statsFilterDept && allDepts.length>0) state.statsFilterDept = allDepts[0];
+  const dept = state.statsFilterDept;
+  const today = new Date().toISOString().slice(0,10);
+  const isResignedFn = t => t.resignDate && t.resignDate <= today;
+  const trainees = state.settings.trainees.filter(t=>t.dept===dept).slice().sort((a,b)=>{
+    const ra = isResignedFn(a) ? 1 : 0, rb = isResignedFn(b) ? 1 : 0;
+    if (ra !== rb) return ra - rb;              // 재직자 먼저, 퇴사자 맨 아래
+    return (a.joinDate||'').localeCompare(b.joinDate||'');  // 그 안에서 입사순
+  });
+  const deptObj = (state.settings.departments||[]).find(d=>d.name===dept);
+  const requiredIds = deptObj ? (deptObj.requiredProcessIds||[]) : [];
+
+  // 라인 목록 (부서 소속 공정 기준, 제외 라인 빼고, 지정 순서로 정렬)
+  const deptProcs = requiredIds.map(pid=>findProcess(pid)).filter(Boolean);
+  const deptLinesRaw = [...new Set(deptProcs.map(p=>p.line))].filter(ln=>!LINE_EXCLUDE.includes(ln));
+  const deptLines = orderLines(deptLinesRaw, dept);
+
+  const cards = trainees.map(t => {
+    const isSelected = state.selectedTrainee===t.name;
+    const resigned = t.resignDate && t.resignDate <= new Date().toISOString().slice(0,10);
+    const role = (t.role || (t.dept + ' Operator'));
+
+    // 라인별 색상 계산 (미교육=빨강, 일부=노랑, 완료=초록) — 레벨 숫자 표시 안 함
+    const lineCells = deptLines.map(ln => {
+      const procsInLine = deptProcs.filter(p=>p.line===ln);
+      let trainedCnt=0;
+      procsInLine.forEach(p=>{
+        const hasLog = state.logs.some(l=>l.processId===p.id&&(l.trainees||[]).includes(t.name));
+        const sk = getSkillLevel(t.name, p.id);
+        if(sk.level>0||hasLog) trainedCnt++;
+      });
+      let bg, txt='#111';
+      if(trainedCnt===0){ bg='#ef4444'; txt='#fff'; }
+      else if(trainedCnt>=procsInLine.length){ bg='#86efac'; }
+      else { bg='#fde047'; }
+      const tip = `${lineShort(ln)}\n교육: ${trainedCnt}/${procsInLine.length} 공정`;
+      return `<div title="${tip}" style="display:flex;align-items:center;justify-content:center;background:${bg};color:${txt};border:1px solid #d1d5db;border-radius:3px;padding:3px 2px;min-height:26px;font-size:9px;line-height:1.1;font-weight:700;text-align:center;word-break:keep-all;">${lineShort(ln)}</div>`;
+    }).join("");
+
+    return `
+    <div data-action="selectTrainee" data-name="${t.name}" class="cursor-pointer rounded-lg border-2 overflow-hidden ${resigned?'border-red-300 opacity-60':isSelected?'border-blue-600 ring-2 ring-blue-300':'border-gray-200 hover:border-blue-400'} transition bg-white">
+      <div class="flex">
+        <div class="w-24 flex-shrink-0 bg-gray-100 flex items-center justify-center" style="min-height:110px;">
+          ${t.photo
+            ? `<img src="${t.photo}" style="width:96px;height:110px;object-fit:cover;display:block;">`
+            : `<div style="width:96px;height:110px;display:flex;align-items:center;justify-content:center;font-size:34px;color:#cbd5e1;">👤</div>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="px-3 py-2 text-white ${resigned?'bg-red-500':'bg-blue-600'}">
+            <div class="font-black text-base leading-tight truncate">${t.name} ${resigned?'<span class="text-xs font-normal">(퇴사)</span>':''}</div>
+            <div class="text-xs text-blue-100 leading-tight truncate mt-0.5">${role}</div>
+            <div class="text-xs text-blue-200 leading-tight">입사 ${t.joinDate||'-'}</div>
+          </div>
+          <div class="px-2 py-2">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:3px;">${lineCells||'<div class="text-xs text-gray-400">라인 없음</div>'}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  // 선택된 인원 상세
+  let detail = "";
+  if (state.selectedTrainee) {
+    const t = state.settings.trainees.find(x=>x.name===state.selectedTrainee);
+    if (t) {
+      const personResignedInDetail = t.resignDate && t.resignDate <= new Date().toISOString().slice(0,10);
+      const procs = requiredIds.map(pid=>findProcess(pid)).filter(Boolean);
+      const byLine = {};
+      procs.forEach(p=>{if(!byLine[p.line])byLine[p.line]=[];byLine[p.line].push(p);});
+      const today = new Date().toISOString().slice(0,10);
+      const lineSections = Object.keys(byLine).sort().map(line => {
+        const rows = byLine[line].map(proc => {
+          const hasLog = state.logs.some(l=>l.processId===proc.id&&(l.trainees||[]).includes(t.name));
+          const skill = getSkillLevel(t.name, proc.id);
+          const plan = state.plans.find(p=>p.traineeName===t.name&&p.processId===proc.id);
+          const matchingLog = state.logs.find(l=>l.processId===proc.id&&(l.trainees||[]).includes(t.name));
+          const logStatus = matchingLog
+            ? `<span class="inline-flex items-center gap-1"><button data-action="print" data-id="${matchingLog.id}" class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-green-200" title="교육일지 보기">✅ 이수</button><button data-action="delLogFromDetail" data-id="${matchingLog.id}" data-trainee="${t.name}" class="text-red-500 hover:text-red-700 text-xs" title="이 교육 기록 삭제">🗑️</button></span>`
+            : (plan ? `<span class="inline-flex items-center gap-1">${plan.plannedDate<today
+              ? `<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">⚠️ 기한초과 <b>${plan.plannedDate}</b> (${Math.ceil((new Date(today)-new Date(plan.plannedDate))/(864e5))}일)</span>`
+              : `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">📅 ${plan.plannedDate} (D-${Math.ceil((new Date(plan.plannedDate)-new Date(today))/(864e5))})</span>`}<button data-action="planToUnplanned" data-trainee="${t.name}" data-pid="${proc.id}" class="text-gray-400 hover:text-red-600 text-xs" title="미계획으로 변경 (이 공정 일정 제거)">✕</button></span>`
+              : `<span class="inline-flex items-center gap-1"><span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">미계획</span>${personResignedInDetail?'':`<button data-action="planFromUnplanned" data-trainee="${t.name}" data-pid="${proc.id}" class="text-blue-400 hover:text-blue-600 text-xs" title="일정 생성 (오늘 기준)">＋일정</button>`}</span>`);
+          const bestEval = skill.evals && skill.evals.length > 0 ? skill.evals.reduce((a,b)=>(a.totalScore||0)>=(b.totalScore||0)?a:b) : null;
+          const evalStatus = skill.level > 0 && bestEval
+            ? `<span class="inline-flex items-center gap-1"><button data-action="printEval" data-id="${bestEval.id}" class="${SKILL_COLORS[skill.level].bg} ${SKILL_COLORS[skill.level].text} px-2 py-0.5 rounded text-xs font-bold cursor-pointer hover:opacity-80" title="평가서 보기">Lv${skill.level} (${skill.score100||skill.score||0}점)</button><button data-action="delEvalFromDetail" data-trainee="${t.name}" data-pid="${proc.id}" class="text-red-500 hover:text-red-700 text-xs" title="이 인원·공정 스킬평가 전체 삭제">🗑️</button></span>`
+            : '<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-xs">미평가</span>';
+          let actions = '';
+          if (!matchingLog) {
+            actions = `<button data-action="startLogFromPlan" data-trainee="${t.name}" data-pid="${proc.id}" class="text-blue-600 hover:underline text-xs">✏️ 교육일지</button>`;
+          } else if (skill.level === 0) {
+            actions = `<button data-action="startEvalFor" data-trainee="${t.name}" data-pid="${proc.id}" class="text-green-600 hover:underline text-xs">📝 스킬평가</button>`;
+          } else {
+            // 이미 평가 있어도 추가 스킬업 가능
+            const evalCount = skill.evals ? skill.evals.length : state.evals.filter(e=>e.traineeName===t.name&&e.processId===proc.id).length;
+            actions = `<button data-action="addSkillUp" data-trainee="${t.name}" data-pid="${proc.id}" data-line="${proc.line}" class="text-purple-600 hover:underline text-xs">➕ 추가 스킬평가</button>` +
+              (evalCount > 1 ? ` <button data-action="showEvalHistory" data-trainee="${t.name}" data-pid="${proc.id}" class="text-purple-500 hover:underline text-xs ml-1">(${evalCount}회 이력)</button>` : '');
+          }
+          return `<tr class="border-b hover:bg-gray-50"><td class="p-2 text-xs font-medium">${proc.name}</td><td class="p-2">${logStatus}</td><td class="p-2">${evalStatus}</td><td class="p-2">${actions}</td></tr>`;
+        }).join("");
+        return `<div class="mb-3"><h4 class="font-bold text-blue-700 bg-blue-50 px-3 py-2 rounded text-sm">🏭 ${line}</h4>
+          <table class="w-full text-sm border"><thead class="bg-gray-100"><tr><th class="p-2 text-left">공정</th><th class="p-2 text-left">공정교육</th><th class="p-2 text-left">스킬평가</th><th class="p-2">작업</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      }).join("");
+      const personResigned = t.resignDate && t.resignDate <= new Date().toISOString().slice(0,10);
+      detail = `<div class="mt-4 bg-white rounded-xl shadow-lg p-6 border-t-4 ${personResigned?'border-red-400':'border-blue-600'}">
+        <div class="flex justify-between items-center mb-4 pb-3 border-b">
+          <div><h3 class="text-xl font-bold">👤 ${t.name} ${personResigned?'<span class="text-sm text-red-600 font-normal">(퇴사)</span>':''}</h3><p class="text-sm text-gray-500">${t.dept} · 입사 ${t.joinDate||'-'}${personResigned?' · <span class="text-red-600">퇴사 '+t.resignDate+'</span>':''}</p></div>
+          <div class="flex gap-2">
+            ${personResigned?'':'<button data-action="autoScheduleOne" data-name="'+t.name+'" class="bg-orange-500 text-white px-3 py-1 rounded text-xs">⚡ 자동 일정 생성</button>'}
+            <button data-action="clearTrainee" class="text-gray-500 hover:text-gray-800 text-xl">✕</button>
+          </div>
+        </div>${lineSections}</div>`;
+    }
+  }
+
+  const totalTrainees = trainees.length;
+  return `<div class="max-w-7xl mx-auto p-6">${navBar('stats')}${deptTabs('stats','statsFilterDept','setStatsDept')}
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-4">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">📊 ${dept} 인원별 현황</h1>
+      <p class="text-sm text-gray-500">라인별 교육/레벨 현황 · 카드 클릭 시 상세</p>
+      <div class="text-sm text-gray-600 mt-2 mb-3">등록 인원: <b>${totalTrainees}</b>명</div>
+      <div class="flex gap-3 items-center text-xs bg-gray-50 p-2 rounded flex-wrap">
+        <span class="font-semibold text-gray-600">라인 색상:</span>
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-4 h-4 rounded" style="background:#ef4444;border:1px solid #dc2626;"></span>공정교육 미실시</span>
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-4 h-4 rounded" style="background:#fde047;border:1px solid #ca8a04;"></span>일부실시</span>
+        <span class="inline-flex items-center gap-1"><span class="inline-block w-4 h-4 rounded" style="background:#86efac;border:1px solid #16a34a;"></span>완료</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">${cards||'<div class="col-span-3 text-center py-8 text-gray-500">등록된 인원이 없습니다.</div>'}</div>
+    ${detail}</div>`;
+}
+
+// ============ 🎯 스킬맵 ============
+function renderSkill() {
+  const allDepts = (state.settings.departments||[]).map(d=>d.name);
+  if (!state.skillFilterDept && allDepts.length>0) state.skillFilterDept = allDepts[0];
+  const dept = state.skillFilterDept;
+  const deptObj = (state.settings.departments||[]).find(d=>d.name===dept);
+  const deptPids = deptObj ? (deptObj.requiredProcessIds||[]) : [];
+  let trainees = state.settings.trainees.filter(t=>t.dept===dept && !(t.resignDate && t.resignDate <= new Date().toISOString().slice(0,10)));
+  let processes = state.settings.processes.filter(p=>deptPids.includes(p.id));
+  processes = sortProcsByLineOrder(processes, dept);  // 라인 지정 순서로 정렬 (배지/템플릿과 일치)
+  if (state.skillFilterLine) processes = processes.filter(p=>p.line===state.skillFilterLine);
+
+  // 매트릭스
+  const matrix = processes.map(p => {
+    const row = {process:p, cells:[]};
+    let trainedCount = 0;
+    trainees.forEach(t => {
+      const skill = getSkillLevel(t.name, p.id);
+      row.cells.push({trainee:t,skill});
+      if (skill.level>0) trainedCount++;
+    });
+    row.trained = trainedCount;
+    row.coverage = trainees.length ? (trainedCount/trainees.length*100) : 0;
+    return row;
+  });
+
+  // 인원별 통계
+  const personStats = trainees.map((t,i)=>{
+    let sum=0,count=0;
+    matrix.forEach(row=>{const lv=row.cells[i].skill.level;if(lv>0){sum+=lv;count++;}});
+    return {trainee:t,avg:count?sum/count:0,coverage:processes.length?(count/processes.length*100):0,trained:count};
+  });
+
+  // 라인 그룹화
+  const lineGroups = [];
+  let curLine = null;
+  matrix.forEach((row,idx)=>{
+    if(row.process.line!==curLine){lineGroups.push({line:row.process.line,rows:[{row,idx}]});curLine=row.process.line;}
+    else lineGroups[lineGroups.length-1].rows.push({row,idx});
+  });
+
+  const cellHtml = (cell,pName)=>{
+    const c=SKILL_COLORS[cell.skill.level];
+    const lv = cell.skill.level;
+    const trained = cell.skill.trained;
+    let tip, bgStyle, content;
+    if (lv > 0) {
+      // 스킬 평가 점수 있음 → 레벨 색상
+      tip = `${cell.trainee.name} · ${pName}\nLv ${lv} · ${cell.skill.score}점 (${SKILL_RANGE[lv]})\n교육이수 ✅\n최종 ${cell.skill.lastDate||'-'}`;
+      bgStyle = `background:${c.hex};color:${lv>=3?'#fff':'#111'}`;
+      content = lv;
+    } else if (trained) {
+      // 공정교육만 완료 → 흰색 + 체크
+      tip = `${cell.trainee.name} · ${pName}\n교육이수 완료 (스킬평가 미실시)`;
+      bgStyle = 'background:#ffffff;color:#16a34a;border:1px solid #86efac';
+      content = '✓';
+    } else {
+      // 미교육 → 회색
+      tip = `${cell.trainee.name} · ${pName}\n미교육`;
+      bgStyle = 'background:#f3f4f6;color:#d1d5db';
+      content = '';
+    }
+    return `<td class="person-col text-center font-bold cursor-pointer hover:opacity-80 border border-gray-300" style="width:60px;height:32px;font-size:12px;${bgStyle}" title="${tip}">${content}</td>`;
+  };
+
+  // 헤더 행들
+  // 헤더 행들 (번호 → 사진 → 이름(가로) → 입사일, Line/Station 4행 병합)
+  const numRow = `<tr>
+    <th class="hdr-line border border-gray-300" rowspan="4" style="min-width:60px;width:60px;background:#e5e7eb;position:sticky;top:0;left:0;z-index:36;font-weight:bold;font-size:15px;vertical-align:middle;">Line</th>
+    <th class="hdr-proc border border-gray-300" rowspan="4" style="left:60px;min-width:200px;background:#e5e7eb;position:sticky;top:0;z-index:36;font-weight:bold;font-size:15px;vertical-align:middle;">Station</th>
+    ${trainees.map((t,i)=>`<th class="person-col num-cell border border-gray-300 text-center" style="width:60px;background:#e5e7eb;position:sticky;top:0;z-index:25;font-size:11px;font-weight:bold;">${i+1}</th>`).join("")}</tr>`;
+
+  const photoRow = `<tr>
+    ${trainees.map(t=>`<th class="person-col photo-th border border-gray-300 p-0.5" style="width:60px;background:#fff;position:sticky;top:24px;z-index:25;">
+      ${t.photo?`<img src="${t.photo}" style="width:54px;height:54px;object-fit:cover;border-radius:3px;display:block;margin:auto;">`
+      :`<div style="width:54px;height:54px;background:#e5e7eb;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#9ca3af;margin:auto;">👤</div>`}
+    </th>`).join("")}</tr>`;
+
+  const nameRow = `<tr>
+    ${trainees.map(t=>`<th class="person-col name-h border border-gray-300 text-center" style="width:60px;background:#f3f4f6;position:sticky;top:84px;z-index:25;font-size:12px;font-weight:700;padding:2px;">${t.name}</th>`).join("")}</tr>`;
+
+  const joinRow = `<tr>
+    ${trainees.map(t=>{const jd=(t.joinDate||'-');let yr='',md='';if(jd.length>=10){yr=jd.slice(2,4)+'.';md=parseInt(jd.slice(5,7))+'/'+parseInt(jd.slice(8,10));}else{yr=jd;}return `<th class="person-col join-cell border border-gray-300 text-center" style="background:#f9fafb;position:sticky;top:110px;z-index:25;color:#2563eb;font-weight:600;line-height:1.1;padding:2px 1px;"><div style="font-size:10px;">${yr}</div>${md?`<div style="font-size:10px;">${md}</div>`:''}</th>`;}).join("")}</tr>`;
+
+  // 본문 행
+  const bodyRows = lineGroups.map(g=>{
+    return g.rows.map((item,gi)=>{
+      const row = item.row;
+      const lineCell = gi===0
+        ? `<td class="line-col border border-gray-300 text-blue-900 font-bold text-center" rowspan="${g.rows.length}" style="font-size:12px;writing-mode:vertical-lr;background:#dbeafe;position:sticky;left:0;z-index:15;min-width:60px;">${g.line}</td>`:'';
+      return `<tr class="data-row">${lineCell}<td class="proc-col border border-gray-300 p-2 text-xs font-semibold" style="left:60px;background:#fff;position:sticky;z-index:15;min-width:200px;">${row.process.name}</td>
+        ${row.cells.map(c=>cellHtml(c,row.process.name)).join("")}</tr>`;
+    }).join("");
+  }).join("");
+
+  // 푸터
+  const totalProc = processes.length;
+  const totalDiagrams = trainees.length * totalProc;
+  const totalEarned = personStats.reduce((s,ps)=>s+ps.trained,0);
+  const totalRate = totalDiagrams?(totalEarned/totalDiagrams*100).toFixed(1):"0";
+  // ===== 라인별 종합 (맨 아래) =====
+  // 각 인원 × 각 라인: 전공정 미교육=흰색, 일부=노랑, 전부=초록 / 가운데 평균레벨 숫자
+  const summaryLines = [...new Set(matrix.map(r=>r.process.line))];
+  const personCount = personStats.length;
+  const lineSummaryHeader = `<tr>
+    <td class="border border-gray-400 p-1 text-xs font-black text-center" colspan="2" style="background:#1e293b;color:#fff;position:sticky;left:0;z-index:15;">라인별 종합<br>(교육/레벨)</td>
+    <td class="border border-gray-400" colspan="${personCount}" style="background:#1e293b;color:#fff;padding:4px 10px;">
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:11px;font-weight:600;">
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#ef4444;border:1px solid #fff;"></span>공정교육 미실시</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#fde047;border:1px solid #fff;"></span>공정교육 일부실시</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#86efac;border:1px solid #fff;"></span>공정교육 완료</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;background:#fff;color:#1e293b;text-align:center;line-height:14px;font-size:10px;font-weight:900;">2.5</span>가운데 숫자 = 평균 레벨</span>
+      </div>
+    </td></tr>`;
+  const lineSummaryRows = lineSummaryHeader + summaryLines.map(ln=>{
+    const lineRowsIdx = matrix.map((r,idx)=>({r,idx})).filter(x=>x.r.process.line===ln);
+    const totalInLine = lineRowsIdx.length;
+    const cells = personStats.map((ps,i)=>{
+      let trainedCnt=0, lvSum=0, lvCnt=0;
+      lineRowsIdx.forEach(x=>{
+        const sk=x.r.cells[i].skill;
+        if(sk.level>0||sk.trained) trainedCnt++;
+        if(sk.level>0){lvSum+=sk.level;lvCnt++;}
+      });
+      let bg, txtColor='#111';
+      if(trainedCnt===0){ bg='background:#ef4444'; txtColor='#fff'; }   // 한 번도 교육 안 함 → 빨강
+      else if(trainedCnt>=totalInLine) bg='background:#86efac';         // 전공정 교육 → 초록
+      else bg='background:#fde047';                                     // 일부 → 노랑
+      const lvTxt = lvCnt>0 ? (lvSum/lvCnt).toFixed(1) : '';
+      const tip = `${ps.trainee.name} · ${ln}\n교육: ${trainedCnt}/${totalInLine} 공정\n평균 Lv: ${lvTxt||'-'}`;
+      return `<td class="border border-gray-300 text-center font-bold" style="${bg};color:${txtColor};font-size:12px;" title="${tip}">${lvTxt}</td>`;
+    }).join("");
+    return `<tr class="linesum-row"><td class="border border-gray-300 p-1 text-xs font-bold" colspan="2" style="background:#f1f5f9;position:sticky;left:0;z-index:15;padding-left:8px;">${ln}</td>${cells}</tr>`;
+  }).join("");
+
+  const footerRows = `
+    <tr><td class="border border-gray-300 p-1 text-xs font-bold text-center" colspan="2" style="background:#d1d5db;position:sticky;left:0;z-index:15;">개인 평균 Lv</td>
+      ${personStats.map(ps=>{const cls=ps.avg>=3?'background:#bbf7d0':ps.avg>=2?'background:#d9f99d':ps.avg>=1?'background:#fef08a':'background:#f3f4f6';return `<td class="border border-gray-300 text-center text-xs font-bold" style="${cls}">${ps.avg.toFixed(1)}</td>`;}).join("")}</tr>
+    <tr><td class="border border-gray-300 p-1 text-xs font-bold text-center" colspan="2" style="background:#e5e7eb;position:sticky;left:0;z-index:15;">총 Diagram 수</td>
+      ${personStats.map(()=>`<td class="border border-gray-300 text-center text-xs" style="background:#fff;">${totalProc}</td>`).join("")}</tr>
+    <tr><td class="border border-gray-300 p-1 text-xs font-bold text-center" colspan="2" style="background:#e5e7eb;position:sticky;left:0;z-index:15;">획득 Diagram 수</td>
+      ${personStats.map(ps=>`<td class="border border-gray-300 text-center text-xs font-semibold" style="background:#fff;">${ps.trained}</td>`).join("")}</tr>
+    <tr><td class="border border-gray-300 p-1 text-xs font-bold text-center" colspan="2" style="background:#e5e7eb;position:sticky;left:0;z-index:15;">Skill Diagram 획득율 %</td>
+      ${personStats.map(ps=>{const r=ps.coverage;const cls=r>=80?'background:#dcfce7':r>=50?'background:#dbeafe':r>0?'background:#fef9c3':'background:#f3f4f6';return `<td class="border border-gray-300 text-center text-xs font-bold" style="${cls}">${r.toFixed(0)}%</td>`;}).join("")}</tr>
+    ${lineSummaryRows}`;
+
+  const deptLines = [...new Set(processes.map(p=>p.line))];
+  const lineOpts = deptLines.map(l=>`<option value="${l}" ${state.skillFilterLine===l?'selected':''}>${l}</option>`).join("");
+
+  // 기준표
+  const criteriaTable = `<div class="no-print-skillmap skillmap-criteria-table bg-white rounded-xl shadow-lg p-6 mt-4">
+    <h2 class="text-lg font-bold mb-3">📋 Skill Diagram</h2>
+    <table class="w-full text-xs border-collapse">
+      <thead><tr class="bg-gray-200"><th class="border border-gray-400 p-2" style="width:90px;">구분</th>
+        <th class="border border-gray-400 p-2 bg-yellow-100">1</th><th class="border border-gray-400 p-2 bg-lime-100">2</th>
+        <th class="border border-gray-400 p-2 bg-green-100">3</th><th class="border border-gray-400 p-2 bg-emerald-200">4</th></tr></thead>
+      <tbody>
+        <tr><td class="border border-gray-400 p-2 font-bold text-center bg-gray-100">공정 평가</td>
+          <td class="border border-gray-400 p-2">작업 표준서 또는 도움을 받아서 작업할 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 21 ~ 40</div></td>
+          <td class="border border-gray-400 p-2">작업 표준 또는 도움 없이 작업할 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 41 ~ 60</div></td>
+          <td class="border border-gray-400 p-2">작업 표준에 준하여 표준작업 속도를 만족시킬 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 61 ~ 80</div></td>
+          <td class="border border-gray-400 p-2">작업 외 설비/품질특성을 관리할 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 81 ~ 100</div></td></tr>
+        <tr><td class="border border-gray-400 p-2 font-bold text-center bg-gray-100">Set up 평가</td>
+          <td class="border border-gray-400 p-2">Setup 절차서 또는 도움을 받아서 Setup할 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 5.0</div></td>
+          <td class="border border-gray-400 p-2">Setup 절차서 또는 도움 없이 Setup 할 수 있으나 시간 만족 못함<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 7.5</div></td>
+          <td class="border border-gray-400 p-2">Setup 절차서에 준하여 시간에 만족하여 Setup 할 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 10</div></td>
+          <td class="border border-gray-400 p-2">Setup 절차서에 준하여 시간에 만족하여 Setup 할 수 있는 능력<div class="text-blue-600 mt-1 font-semibold">평가 점수 : 10</div></td></tr>
+      </tbody></table>
+    <div class="mt-3 text-xs text-gray-600">평가 방법 : 구두질문 / 작업방법 / 품질 / 시험 / R&R<br>
+    ☞ 교육/훈련 실시 후 1주 이내 교육일지 작성하고 2주 후에 평가 방법에 준하여 평가 후 Skill Diagram에 등록한다. (EHS는 교육 당일 평가)</div></div>`;
+
+  return `<div class="max-w-full mx-auto p-6">${navBar('skill')}${deptTabs('skill','skillFilterDept','setSkillDept')}
+    <div class="no-print-skillmap bg-white rounded-xl shadow-lg p-6 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <div><h1 class="text-2xl font-bold">${dept} 스킬맵</h1><p class="text-sm text-gray-500">스킬 평가 점수 기반 · 셀 호버 시 상세</p></div>
+        <div class="flex gap-2 items-center">
+          <select id="skillLineFilter" class="border rounded px-2 py-1 text-sm"><option value="">전체 라인</option>${lineOpts}</select>
+          <button data-action="printSkillMap" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg font-bold text-sm shadow">📄 PDF 다운로드</button>
+        </div>
+      </div>
+      <div class="flex gap-3 items-center text-xs bg-gray-50 p-3 rounded flex-wrap">
+        <span class="font-semibold text-gray-600">범례:</span>
+        <div class="flex items-center gap-1"><span class="inline-block w-5 h-5 text-center rounded text-xs font-bold leading-5" style="background:#f3f4f6;color:#d1d5db;">·</span><span class="text-gray-500">미교육</span></div>
+        <div class="flex items-center gap-1"><span class="inline-block w-5 h-5 text-center rounded text-xs font-bold leading-5" style="background:#fff;color:#16a34a;border:1px solid #86efac;">✓</span><span class="text-gray-500">교육이수(평가전)</span></div>
+        ${[1,2,3,4].map(lv=>`<div class="flex items-center gap-1"><span class="inline-block w-5 h-5 text-center rounded text-xs font-bold leading-5" style="background:${SKILL_COLORS[lv].hex};color:${lv>=3?'#fff':'#111'}">${lv}</span><span class="text-gray-500">Lv${lv} (${SKILL_RANGE[lv]}점)</span></div>`).join("")}
+        <span class="mx-2 text-gray-300">|</span>
+        <span class="font-semibold text-gray-600">라인별종합:</span>
+        <div class="flex items-center gap-1"><span class="inline-block w-5 h-5 rounded" style="background:#ef4444;border:1px solid #dc2626;"></span><span class="text-gray-500">전공정 미교육</span></div>
+        <div class="flex items-center gap-1"><span class="inline-block w-5 h-5 rounded" style="background:#fde047;border:1px solid #ca8a04;"></span><span class="text-gray-500">일부 교육</span></div>
+        <div class="flex items-center gap-1"><span class="inline-block w-5 h-5 rounded" style="background:#86efac;border:1px solid #16a34a;"></span><span class="text-gray-500">전공정 교육</span></div>
+      </div>
+    </div>
+    <div class="skillmap-print-area">
+      <div class="skillmap-print-title" style="display:none;margin-bottom:5px;padding-bottom:5px;border-bottom:3px solid #000;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div id="skillmapQR" style="width:58px;height:58px;flex-shrink:0;"></div>
+            <div style="font-size:26px;font-weight:900;letter-spacing:0.5px;color:#000;">${dept} Skill Training Diagram ${new Date().getFullYear()}. ${String(new Date().getMonth()+1).padStart(2,'0')}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;font-size:10px;">
+            <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:13px;height:13px;background:#f3f4f6;border:1px solid #ccc;"></span>미교육</span>
+            <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:13px;height:13px;background:#fff;border:1px solid #86efac;text-align:center;line-height:13px;color:#16a34a;font-size:9px;">✓</span>교육이수</span>
+            <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:13px;height:13px;background:#fef08a;border:1px solid #ccc;"></span>Lv1(21~40)</span>
+            <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:13px;height:13px;background:#bef264;border:1px solid #ccc;"></span>Lv2(41~60)</span>
+            <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:13px;height:13px;background:#22c55e;border:1px solid #ccc;"></span>Lv3(61~80)</span>
+            <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:13px;height:13px;background:#047857;border:1px solid #ccc;"></span>Lv4(81~100)</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl shadow-lg p-4 overflow-auto" style="max-height:80vh;">
+        ${trainees.length===0||processes.length===0?'<div class="text-center py-12 text-gray-500">데이터 없음</div>'
+        :`<table class="border-collapse"><colgroup><col class="cg-line"><col class="cg-proc">${trainees.map(()=>'<col class="cg-person">').join("")}</colgroup><thead>${numRow}${photoRow}${nameRow}${joinRow}</thead><tbody>${bodyRows}${footerRows}</tbody></table>`}
+      </div>
+    </div>${criteriaTable}</div>`;
+}
+
+// ============ 📅 교육일정 ============
+function renderSchedule() {
+  const allDepts = (state.settings.departments||[]).map(d=>d.name);
+  if (!state.scheduleFilterDept && allDepts.length>0) state.scheduleFilterDept = allDepts[0];
+  const dept = state.scheduleFilterDept;
+  const today = new Date().toISOString().slice(0,10);
+  const mode = state.scheduleFilter||"all";
+
+  const items = [];
+  state.plans.forEach(plan => {
+    const t = state.settings.trainees.find(x=>x.name===plan.traineeName);
+    if (!t || t.dept !== dept) return;
+    // 퇴사자의 미완료 일정은 표시 안 함
+    const resigned = t.resignDate && t.resignDate <= new Date().toISOString().slice(0,10);
+    const proc = findProcess(plan.processId);
+    const planType = plan.type || "training";
+    let done = false;
+    if (planType === "training") {
+      done = state.logs.some(l=>l.processId===plan.processId&&(l.trainees||[]).includes(plan.traineeName));
+    } else {
+      done = plan.status === "completed" || state.evals.some(e=>e.traineeName===plan.traineeName && e.processId===plan.processId && (new Date(e.evalDate||0)) >= (new Date(plan.plannedDate||0)-864e5*30));
+    }
+    // 퇴사자의 미완료 일정은 건너뜀
+    if (resigned && !done) return;
+    items.push({...plan, planType, dept:t.dept, processName:proc?proc.name:'-', line:proc?proc.line:'-',
+      status:done?'done':(plan.plannedDate<today?'overdue':'pending'), done});
+  });
+
+  let filtered = items;
+  if(mode==='pending') filtered=filtered.filter(i=>i.status==='pending');
+  else if(mode==='overdue') filtered=filtered.filter(i=>i.status==='overdue');
+  else if(mode==='done') filtered=filtered.filter(i=>i.status==='done');
+  else if(mode==='month') filtered=filtered.filter(i=>i.plannedDate.startsWith(today.slice(0,7)));
+
+  const order={overdue:0,pending:1,done:2};
+  filtered.sort((a,b)=>order[a.status]-order[b.status]||(a.status==='done'?b.plannedDate.localeCompare(a.plannedDate):a.plannedDate.localeCompare(b.plannedDate)));
+
+  const total=items.length, pendingC=items.filter(i=>i.status==='pending').length,
+    overdueC=items.filter(i=>i.status==='overdue').length, doneC=items.filter(i=>i.status==='done').length;
+
+  const badge = s => s==='done'?'<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">✅ 완료</span>'
+    :s==='overdue'?'<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs">⚠️ 기한초과</span>'
+    :'<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">📅 예정</span>';
+
+  const typeBadge = t => t==='skillEval' ? '<span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs">스킬평가</span>' : '<span class="bg-cyan-100 text-cyan-800 px-1.5 py-0.5 rounded text-xs">공정교육</span>';
+
+  const rows = filtered.map((it,idx)=>{
+    const days = Math.ceil((new Date(it.plannedDate)-new Date(today))/(864e5));
+    let dayInfo = '';
+    if (it.status==='pending') dayInfo = `<span class="text-xs text-blue-600 font-semibold">D-${days}</span>`;
+    else if (it.status==='overdue') dayInfo = `<span class="text-xs text-red-600 font-bold">${-days}일 경과</span>`;
+    const dateClass = it.status==='overdue' ? 'text-red-600 font-bold' : it.status==='done' ? 'text-gray-400' : '';
+    let action = '';
+    if (it.status !== 'done') {
+      if (it.planType === 'skillEval') {
+        action = `<button data-action="addSkillUp" data-trainee="${it.traineeName}" data-pid="${it.processId}" data-line="${it.line}" class="text-purple-600 hover:underline text-xs">📝 스킬평가</button>`;
+      } else {
+        action = `<button data-action="startLogFromPlan" data-trainee="${it.traineeName}" data-pid="${it.processId}" class="text-blue-600 hover:underline text-xs">✏️ 교육일지</button>`;
+      }
+    }
+    return `<tr class="border-b hover:bg-blue-50${it.status==='overdue'?' bg-red-50':''}"><td class="p-2 text-center text-gray-500 text-xs">${idx+1}</td><td class="p-2">${badge(it.status)} ${typeBadge(it.planType)}</td>
+      <td class="p-2 font-semibold text-sm">${it.traineeName}</td><td class="p-2"><div class="text-xs text-gray-500">${it.line}</div><div class="text-sm">${it.processName}</div></td>
+      <td class="p-2 text-sm ${dateClass}">${it.plannedDate}</td><td class="p-2">${dayInfo}</td><td class="p-2 text-right">${action}</td></tr>`;
+  }).join("");
+
+  return `<div class="max-w-7xl mx-auto p-6">${navBar('schedule')}${deptTabs('schedule','scheduleFilterDept','setScheduleDept')}
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <div><h1 class="text-2xl font-bold">${dept} 교육 일정</h1></div>
+        <button data-action="autoScheduleAll" class="bg-orange-600 text-white px-4 py-2 rounded text-sm">⚡ 전원 자동 일정 생성</button>
+      </div>
+      <div class="grid grid-cols-4 gap-3 mb-4">
+        <div class="bg-blue-50 p-3 rounded"><div class="text-xs text-gray-600">전체</div><div class="text-2xl font-bold text-blue-700">${total}</div></div>
+        <div class="bg-yellow-50 p-3 rounded"><div class="text-xs text-gray-600">예정</div><div class="text-2xl font-bold text-yellow-700">${pendingC}</div></div>
+        <div class="bg-red-50 p-3 rounded"><div class="text-xs text-gray-600">기한초과</div><div class="text-2xl font-bold text-red-700">${overdueC}</div></div>
+        <div class="bg-green-50 p-3 rounded"><div class="text-xs text-gray-600">완료</div><div class="text-2xl font-bold text-green-700">${doneC}</div></div>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        ${['all','pending','overdue','done','month'].map(m=>`<button data-action="schFilter" data-mode="${m}" class="px-3 py-1 rounded text-sm ${mode===m?'bg-blue-600 text-white':'bg-gray-100'}">${{all:'전체',pending:'예정',overdue:'기한초과',done:'완료',month:'이번달'}[m]}</button>`).join("")}
+      </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+      <table class="w-full text-sm"><thead class="bg-gray-100 border-b-2"><tr><th class="p-3 w-12">#</th><th class="p-3 text-left">상태</th><th class="p-3 text-left">피교육자</th><th class="p-3 text-left">교육과정</th><th class="p-3 text-left">계획일</th><th class="p-3 text-left">D-day</th><th class="p-3 text-right">작업</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="7" class="text-center py-8 text-gray-500">일정이 없습니다</td></tr>'}</tbody></table>
+    </div></div>`;
+}
+
+// ============ 📋 교육일지 목록 ============
+function renderList() {
+  const logs = state.logs.sort((a,b)=>(b.startDate||"").localeCompare(a.startDate||""));
+  const rows = logs.map(l=>{
+    const p = findProcess(l.processId);
+    const name = p ? p.name : (l.courseName||'-');
+    return `<tr class="border-b hover:bg-blue-50">
+      <td class="p-2 text-xs">${l.startDate||'-'}</td><td class="p-2">${l.line||'-'}</td><td class="p-2 font-medium">${name}</td>
+      <td class="p-2">${l.instructorName||'-'}</td><td class="p-2 text-xs">${(l.trainees||[]).join(', ')}</td>
+      <td class="p-2 text-right">
+        <button data-action="edit" data-id="${l.id}" class="text-blue-600 hover:underline text-xs mr-2">수정</button>
+        <button data-action="print" data-id="${l.id}" class="text-green-600 hover:underline text-xs mr-2">출력</button>
+        <button data-action="delLog" data-id="${l.id}" class="text-red-600 hover:underline text-xs">삭제</button>
+      </td></tr>`;
+  }).join("");
+  return `<div class="max-w-7xl mx-auto p-6">${navBar('list')}
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="flex justify-between items-center mb-4"><h1 class="text-2xl font-bold">📋 교육일지</h1>
+        <button data-action="new" class="bg-blue-600 text-white px-4 py-2 rounded">+ 새 교육일지</button></div>
+      <table class="w-full text-sm"><thead class="bg-gray-100"><tr><th class="p-2 text-left">날짜</th><th class="p-2 text-left">라인</th><th class="p-2 text-left">교육과정</th><th class="p-2 text-left">강사</th><th class="p-2 text-left">피교육자</th><th class="p-2">작업</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="6" class="text-center py-8 text-gray-500">교육일지가 없습니다</td></tr>'}</tbody></table>
+    </div></div>`;
+}
+
+// ============ 📋 교육일지 작성/수정 ============
+function renderEdit() {
+  const log = state.currentLog;
+  const lines = state.settings.lines;
+  const lineProcs = state.settings.processes.filter(p=>p.line===log.line);
+  const instrOpts = state.settings.instructors.map(i=>`<option value="${i.name}" ${log.instructorName===i.name?'selected':''}>${i.name} (${i.dept})</option>`).join("");
+  const mgrCandidates = state.settings.instructors.filter(i=>i.isManager).map(i=>i.name);
+  const allMgr = [...new Set(mgrCandidates)];
+  const revCandidates = [...new Set(state.settings.instructors.filter(i=>i.isReviewer).map(i=>i.name))];
+  const defaultMgr = (log.approvers&&log.approvers.manager.name) || ((state.settings.departments||[]).find(d=>d.name===log.instructorDept)||{}).manager || "";
+  const defaultRev = (log.approvers&&log.approvers.reviewer&&log.approvers.reviewer.name) || "";
+
+  return `<div class="max-w-4xl mx-auto p-6">${navBar('edit')}
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-xl font-bold">📋 교육일지 작성</h1>
+        <div class="flex gap-2"><button data-action="goList" class="bg-gray-500 text-white px-4 py-2 rounded">취소</button>
+          <button data-action="save" class="bg-blue-600 text-white px-4 py-2 rounded">💾 저장</button></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-semibold mb-1">라인</label>
+          <select id="lineSelect" class="w-full border rounded px-3 py-2"><option value="">-- 라인 --</option>${lines.map(l=>`<option ${log.line===l?'selected':''}>${l}</option>`).join("")}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">교육과정</label>
+          <select id="processSelect" class="w-full border rounded px-3 py-2"><option value="">-- 공정 --</option>${lineProcs.map(p=>`<option value="${p.id}" ${log.processId===p.id?'selected':''}>${p.name}</option>`).join("")}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">강사</label>
+          <select id="instructorSelect" class="w-full border rounded px-3 py-2"><option value="">-- 강사 --</option>${instrOpts}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">교육시간 (Hr)</label>
+          <input type="number" id="hours" value="${log.hours}" min="0.5" step="0.5" class="w-full border rounded px-3 py-2"></div>
+        <div><label class="block text-sm font-semibold mb-1">시작일</label><input type="date" id="startDate" value="${log.startDate}" class="w-full border rounded px-3 py-2"></div>
+        <div><label class="block text-sm font-semibold mb-1">종료일</label><input type="date" id="endDate" value="${log.endDate}" class="w-full border rounded px-3 py-2"></div>
+        <div class="col-span-2"><label class="block text-sm font-semibold mb-1">피교육자</label>
+          <div class="flex flex-wrap gap-2 border rounded p-2 max-h-32 overflow-y-auto">
+            ${state.settings.trainees.map(t=>`<label class="inline-flex items-center gap-1 text-sm"><input type="checkbox" class="trainee-cb" value="${t.name}" ${(log.trainees||[]).includes(t.name)?'checked':''}>${t.name}</label>`).join("")}
+          </div></div>
+        <div class="col-span-2"><label class="block text-sm font-semibold mb-1">교육 내용</label>
+          <textarea id="content" rows="6" class="w-full border rounded px-3 py-2 text-sm">${log.content||''}</textarea></div>
+        <div class="col-span-2"><label class="block text-sm font-semibold mb-1">교육자 평가</label>
+          <textarea id="instructorEval" rows="2" class="w-full border rounded px-3 py-2">${log.instructorEval||''}</textarea></div>
+        <div class="col-span-2"><label class="block text-sm font-semibold mb-2">피교육자 평가 (교육 만족도)</label>
+          <div class="grid grid-cols-1 gap-2">
+            ${LOG_EVAL_ITEMS.map((item,idx)=>`<div class="flex items-center gap-3"><span class="text-sm flex-1">${idx+1}. ${item}</span>
+              <select id="score${idx}" class="border rounded px-2 py-1">${[5,4,3,2,1].map(n=>`<option ${log.scores[idx]===n?'selected':''}>${n}</option>`).join("")}</select></div>`).join("")}
+          </div></div>
+        <div class="col-span-2"><label class="block text-sm font-semibold mb-1">추가 질문/의견</label>
+          <textarea id="opinion" rows="2" class="w-full border rounded px-3 py-2">${log.opinion||''}</textarea></div>
+        <div class="col-span-2 border-t pt-4"><h3 class="font-bold mb-2">📝 결재 라인</h3>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">담당자 (강사)</label><div class="bg-gray-50 border rounded px-3 py-2 text-sm">${log.instructorName||'-'}</div></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">검토자</label>
+              <select id="reviewerSelect" class="w-full border rounded px-3 py-2 text-sm"><option value="">-- 검토자 --</option>${revCandidates.map(n=>`<option value="${n}" ${defaultRev===n?'selected':''}>${n}</option>`).join("")}</select></div>
+            <div><label class="block text-xs font-semibold text-gray-600 mb-1">부서장</label>
+              <select id="managerSelect" class="w-full border rounded px-3 py-2 text-sm"><option value="">-- 부서장 --</option>${allMgr.map(n=>`<option value="${n}" ${defaultMgr===n?'selected':''}>${n}</option>`).join("")}</select></div>
+          </div></div>
+      </div>
+    </div></div>`;
+}
+
+// ============ 📋 교육일지 출력 ============
+function renderPrint() {
+  const log = state.currentLog;
+  const tpl = findProcess(log.processId);
+  const courseName = tpl?tpl.name:log.courseName;
+  const trainees = (log.trainees||[]).join(", ");
+  const evalMethods = ["시험","구두질문","Rating에 의한 평가","기타"];
+  const evalCb = evalMethods.map(m=>`<span style="margin-right:14px;">${log.evalMethod&&log.evalMethod.includes(m)?'☑':'☐'} ${m}</span>`).join("");
+  const scoreBox = (sel)=>[5,4,3,2,1].map(n=>`<span style="display:inline-block;width:42px;text-align:center;">${sel===n?'☑':'☐'} ${n}</span>`).join("");
+  const a = log.approvers||{};
+  const instSig = a.instructor&&a.instructor.approved?`<div style="font-size:14px;font-weight:bold;color:#1e40af;font-family:'Gungsuh',serif;">${a.instructor.name}</div>`:'';
+  const revSig = a.reviewer&&a.reviewer.approved?`<div style="font-size:14px;font-weight:bold;color:#1e40af;font-family:'Gungsuh',serif;">${a.reviewer.name}</div>`:'';
+  const mgrSig = a.manager&&a.manager.approved?`<div style="font-size:14px;font-weight:bold;color:#1e40af;font-family:'Gungsuh',serif;">${a.manager.name}</div>`:'';
+  const hasRev = !!(a.reviewer&&a.reviewer.name);
+
+  return `<div class="max-w-4xl mx-auto p-4">
+    <div class="no-print mb-4 flex gap-2 justify-end">
+      <button data-action="goList" class="bg-gray-500 text-white px-4 py-2 rounded">← 목록</button>
+      <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded">🖨️ 인쇄</button></div>
+    <div class="print-page bg-white shadow-lg p-10" style="font-family:'Malgun Gothic',sans-serif;">
+      <div style="border-top:2px solid #000;border-bottom:2px solid #000;padding:14px 0;margin-bottom:18px;"><h1 style="text-align:center;font-size:22px;font-weight:bold;">교육 실시 보고서(사내교육)</h1></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><table style="border-collapse:collapse;">
+        <tr><td style="border:1px solid #000;padding:4px 16px;text-align:center;font-size:12px;width:80px;">담 당</td>${hasRev?'<td style="border:1px solid #000;padding:4px 16px;text-align:center;font-size:12px;width:80px;">검 토</td>':''}<td style="border:1px solid #000;padding:4px 16px;text-align:center;font-size:12px;width:80px;">부서장</td></tr>
+        <tr><td style="border:1px solid #000;height:54px;text-align:center;vertical-align:middle;">${instSig}</td>${hasRev?`<td style="border:1px solid #000;text-align:center;vertical-align:middle;">${revSig}</td>`:''}<td style="border:1px solid #000;text-align:center;vertical-align:middle;">${mgrSig}</td></tr></table></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;width:100px;background:#f3f4f6;font-weight:bold;" rowspan="2">강 사</td>
+          <td style="border:1px solid #000;padding:6px 10px;text-align:center;">성 명</td><td style="border:1px solid #000;padding:6px 10px;text-align:center;">직 위</td><td style="border:1px solid #000;padding:6px 10px;text-align:center;">부 서</td></tr>
+        <tr><td style="border:1px solid #000;padding:6px 10px;text-align:center;">${log.instructorName||''}</td><td style="border:1px solid #000;padding:6px 10px;text-align:center;">${log.instructorPosition||''}</td><td style="border:1px solid #000;padding:6px 10px;text-align:center;">${log.instructorDept||''}</td></tr>
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;">교육일자</td><td style="border:1px solid #000;padding:6px 10px;" colspan="2">${log.startDate}~${log.endDate}</td><td style="border:1px solid #000;padding:6px 10px;background:#f3f4f6;">총 교육시간 <b>${log.hours}Hr</b></td></tr>
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;">장 소</td><td style="border:1px solid #000;padding:6px 10px;">${log.line||''}</td><td style="border:1px solid #000;padding:6px 10px;text-align:center;background:#f3f4f6;">교육과정</td><td style="border:1px solid #000;padding:6px 10px;">${courseName||''}</td></tr>
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;">평가방법</td><td style="border:1px solid #000;padding:6px 10px;" colspan="3">${evalCb}</td></tr>
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;">피교육자 명단</td><td style="border:1px solid #000;padding:6px 10px;" colspan="3">${trainees}</td></tr>
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;">교육 내용</td><td style="border:1px solid #000;padding:10px 14px;" colspan="3"><pre style="white-space:pre-wrap;font-family:inherit;font-size:11px;margin:0;line-height:1.7;">${log.content||''}</pre></td></tr>
+        <tr><td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;">교육자 평가</td><td style="border:1px solid #000;padding:8px 14px;" colspan="3">${log.instructorEval||''}</td></tr>
+        ${LOG_EVAL_ITEMS.map((item,idx)=>`<tr>${idx===0?'<td style="border:1px solid #000;padding:8px;text-align:center;background:#f3f4f6;font-weight:bold;" rowspan="6">피교육자<br>평 가</td>':''}<td style="border:1px solid #000;padding:6px 10px;" colspan="2">${idx+1}. ${item} :</td><td style="border:1px solid #000;padding:6px 10px;text-align:right;font-size:11px;">${scoreBox(log.scores[idx])}</td></tr>`).join("")}
+        <tr><td style="border:1px solid #000;padding:8px 10px;" colspan="3">6. 추가적인 질문 사항 및 교육에 대한 의견 : ${log.opinion||''}</td></tr>
+        <tr><td style="border:1px solid #000;" rowspan="2"></td><td style="border:1px solid #000;padding:6px 10px;font-size:11px;" colspan="3">평가방법 : 5 – 매우만족, 4-만족, 3-보통, 2-불만족, 1-매우 불만족</td></tr>
+        <tr><td style="border:1px solid #000;padding:6px 10px;font-size:11px;" colspan="3">평가결과판정 : 상기 5항목 평가후 평균 3점 미만시 재교육 및 차기년도 재교육 반영 요</td></tr>
+      </table>
+      <div style="font-size:11px;margin-top:6px;">F18-0112(Rev.2) 02.11.11</div>
+    </div></div>`;
+}
+
+// ============ 📝 스킬평가 목록 ============
+function renderEvalList() {
+  const evals = state.evals.sort((a,b)=>(b.evalDate||"").localeCompare(a.evalDate||""));
+
+  // 인원+공정별 이력 그룹핑
+  const historyMap = {};
+  evals.forEach(e => {
+    const key = `${e.traineeName}__${e.processId}`;
+    if (!historyMap[key]) historyMap[key] = [];
+    historyMap[key].push(e);
+  });
+
+  const rows = evals.map(e=>{
+    const p = findProcess(e.processId);
+    const pName = p ? p.name : '-';
+    const c = SKILL_COLORS[e.level||0];
+    const key = `${e.traineeName}__${e.processId}`;
+    const histCount = (historyMap[key]||[]).length;
+    const allApproved = e.approvers && e.approvers.instructor && e.approvers.instructor.approved && (!(e.approvers.reviewer&&e.approvers.reviewer.name)||e.approvers.reviewer.approved) && e.approvers.manager && e.approvers.manager.approved;
+    return `<tr class="border-b hover:bg-blue-50">
+      <td class="p-2 text-xs">${e.evalDate||'-'}</td><td class="p-2">${e.traineeName||'-'}</td>
+      <td class="p-2">${e.line||'-'}</td><td class="p-2 font-medium">${pName}</td>
+      <td class="p-2">${e.evaluatorName||'-'}</td>
+      <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:${c.hex};color:${e.level>=3?'#fff':'#111'}">Lv${e.level} (${e.totalScore}점)</span></td>
+      <td class="p-2 text-center">${allApproved?'✅':'⏳'}</td>
+      <td class="p-2 text-center">${histCount > 1 ? `<button data-action="showEvalHistory" data-trainee="${e.traineeName}" data-pid="${e.processId}" class="text-purple-600 hover:underline text-xs font-bold">${histCount}회</button>` : '<span class="text-gray-400 text-xs">1회</span>'}</td>
+      <td class="p-2 text-right">
+        <button data-action="addSkillUp" data-trainee="${e.traineeName}" data-pid="${e.processId}" data-line="${e.line||''}" class="text-green-600 hover:underline text-xs mr-1" title="추가 스킬업">➕추가</button>
+        <button data-action="printEval" data-id="${e.id}" class="text-gray-600 hover:underline text-xs mr-1">🖨️</button>
+        <button data-action="editEval" data-id="${e.id}" class="text-blue-600 hover:underline text-xs mr-1">수정</button>
+        <button data-action="delEval" data-id="${e.id}" class="text-red-600 hover:underline text-xs">삭제</button>
+      </td></tr>`;
+  }).join("");
+
+  // 이력 상세 (모달 대신 하단에 표시)
+  let historyHtml = '';
+  if (state.evalHistoryKey) {
+    const histEvals = historyMap[state.evalHistoryKey] || [];
+    const [tn, pidStr] = state.evalHistoryKey.split("__");
+    const proc = findProcess(parseInt(pidStr));
+    historyHtml = `
+      <div class="bg-purple-50 rounded-xl shadow-lg p-6 mt-4 border-t-4 border-purple-600">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-lg font-bold text-purple-800">📊 스킬 평가 이력: ${tn} · ${proc?proc.name:'-'}</h2>
+          <button data-action="closeEvalHistory" class="text-gray-500 hover:text-gray-800 text-xl">✕</button>
+        </div>
+        <table class="w-full text-sm bg-white rounded">
+          <thead class="bg-gray-100"><tr><th class="p-2">#</th><th class="p-2">평가일</th><th class="p-2">평가자</th><th class="p-2 text-center">점수</th><th class="p-2 text-center">레벨</th><th class="p-2 text-center">결재</th><th class="p-2">비고</th></tr></thead>
+          <tbody>${histEvals.sort((a,b)=>(a.evalDate||"").localeCompare(b.evalDate||"")).map((he,i)=>{
+            const hc = SKILL_COLORS[he.level||0];
+            const hApproved = he.approvers && he.approvers.instructor && he.approvers.instructor.approved && (!(he.approvers.reviewer&&he.approvers.reviewer.name)||he.approvers.reviewer.approved) && he.approvers.manager && he.approvers.manager.approved;
+            return `<tr class="border-b"><td class="p-2 text-center">${i+1}</td><td class="p-2">${he.evalDate||'-'}</td><td class="p-2">${he.evaluatorName||'-'}</td>
+              <td class="p-2 text-center font-bold">${he.totalScore}</td>
+              <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-bold" style="background:${hc.hex};color:${he.level>=3?'#fff':'#111'}">Lv${he.level}</span></td>
+              <td class="p-2 text-center">${hApproved?'✅':'⏳'}</td>
+              <td class="p-2 text-xs text-gray-500">${he.reference||''}</td></tr>`;
+          }).join("")}</tbody>
+        </table>
+        <div class="mt-3 text-center">
+          <button data-action="addSkillUp" data-trainee="${tn}" data-pid="${pidStr}" data-line="${histEvals[0]?histEvals[0].line:''}" class="bg-green-600 text-white px-4 py-2 rounded font-semibold text-sm">➕ 추가 스킬평가 실시</button>
+        </div>
+      </div>`;
+  }
+
+  return `<div class="max-w-7xl mx-auto p-6">${navBar('evalList')}
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="flex justify-between items-center mb-4"><h1 class="text-2xl font-bold">📝 스킬 평가</h1>
+        <button data-action="newEval" class="bg-green-600 text-white px-4 py-2 rounded">+ 새 스킬 평가</button></div>
+      <p class="text-sm text-gray-500 mb-4">공정 교육 이수 후 실시하는 실력 평가 · 이 점수가 스킬맵 레벨을 결정합니다 · 추가 스킬업 평가를 계속 할 수 있습니다</p>
+      <table class="w-full text-sm"><thead class="bg-gray-100"><tr><th class="p-2 text-left">평가일</th><th class="p-2 text-left">피교육자</th><th class="p-2 text-left">라인</th><th class="p-2 text-left">공정</th><th class="p-2 text-left">평가자</th><th class="p-2 text-center">결과</th><th class="p-2 text-center">결재</th><th class="p-2 text-center">이력</th><th class="p-2">작업</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="9" class="text-center py-8 text-gray-500">스킬 평가가 없습니다</td></tr>'}</tbody></table>
+    </div>
+    ${historyHtml}
+  </div>`;
+}
+
+// ============ 📝 스킬평가 작성 ============
+function renderEvalForm() {
+  const ev = state.currentEval;
+  const lines = state.settings.lines;
+  const lineProcs = state.settings.processes.filter(p=>p.line===ev.line);
+  const instrOpts = state.settings.instructors.map(i=>`<option value="${i.name}" ${ev.evaluatorName===i.name?'selected':''}>${i.name} (${i.dept})</option>`).join("");
+  // 라인이 선택돼 있으면 그 라인의 부서 인원만 (동명이인 부서 혼동 방지)
+  const lineDept = deptOfLine(ev.line);
+  const traineePool = lineDept ? state.settings.trainees.filter(t=>t.dept===lineDept) : state.settings.trainees;
+  const traineeOpts = traineePool.map(t=>`<option value="${t.name}" ${ev.traineeName===t.name?'selected':''}>${t.name} (${t.dept})</option>`).join("");
+  const mgrCandidates = [...new Set(state.settings.instructors.filter(i=>i.isManager).map(i=>i.name))];
+  const revCandidates = [...new Set(state.settings.instructors.filter(i=>i.isReviewer).map(i=>i.name))];
+  const defaultMgr = (ev.approvers&&ev.approvers.manager.name) || "";
+  const defaultRev = (ev.approvers&&ev.approvers.reviewer&&ev.approvers.reviewer.name) || "";
+
+  // 평가 항목: 저장된 기준 우선, 없으면 공정 종류에 맞는 기준 (EHS면 EHS 기준)
+  const evProc = ev.processId ? findProcess(ev.processId) : null;
+  const criteria = ev.criteria || getEvalCriteria(evProc);
+  const isEHS = isEHSProcess(evProc);
+
+  const itemRows = criteria.map((c,idx)=>`
+    <tr class="border-b">
+      <td class="p-2 text-center font-bold text-sm">${c.no}</td>
+      <td class="p-2 text-xs">${c.title}</td>
+      <td class="p-2"><textarea class="eval-content w-full border rounded px-2 py-1 text-xs" data-idx="${idx}" rows="2" placeholder="평가 내용">${ev.contents[idx]||''}</textarea></td>
+      <td class="p-2 text-center font-bold">${c.max}</td>
+      <td class="p-2"><input type="number" min="0" max="10" class="eval-score w-16 border rounded px-2 py-1 text-center font-bold" data-idx="${idx}" value="${ev.scores[idx]||0}"></td>
+      <td class="p-2"><input class="eval-remark w-full border rounded px-2 py-1 text-xs" data-idx="${idx}" value="${ev.remarks[idx]||''}" placeholder="비고"></td>
+    </tr>`).join("");
+
+  const totalScore = ev.scores.reduce((a,b)=>a+b,0);
+  let level = 0;
+  if(totalScore>=81) level=4; else if(totalScore>=61) level=3; else if(totalScore>=41) level=2; else if(totalScore>=21) level=1;
+
+  return `<div class="max-w-5xl mx-auto p-6">${navBar('evalForm')}
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-xl font-bold">📝 Skill Evaluation Sheet ${isEHS?'<span class="ml-2 text-sm bg-orange-100 text-orange-700 px-2 py-0.5 rounded align-middle">EHS 전용 항목</span>':''}</h1>
+        <div class="flex gap-2"><button data-action="goEvalList" class="bg-gray-500 text-white px-4 py-2 rounded">취소</button>
+          <button data-action="saveEval" class="bg-green-600 text-white px-4 py-2 rounded">💾 저장</button></div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div><label class="block text-sm font-semibold mb-1">피교육자</label>
+          <select id="evalTrainee" class="w-full border rounded px-3 py-2"><option value="">-- 선택 --</option>${traineeOpts}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">라인</label>
+          <select id="evalLine" class="w-full border rounded px-3 py-2"><option value="">-- 라인 --</option>${lines.map(l=>`<option ${ev.line===l?'selected':''}>${l}</option>`).join("")}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">공정</label>
+          <select id="evalProcess" class="w-full border rounded px-3 py-2"><option value="">-- 공정 --</option>${lineProcs.map(p=>`<option value="${p.id}" ${ev.processId===p.id?'selected':''}>${p.name}</option>`).join("")}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">평가자</label>
+          <select id="evalEvaluator" class="w-full border rounded px-3 py-2"><option value="">-- 평가자 --</option>${instrOpts}</select></div>
+        <div><label class="block text-sm font-semibold mb-1">평가일</label>
+          <input type="date" id="evalDate" value="${ev.evalDate}" class="w-full border rounded px-3 py-2"></div>
+        <div><label class="block text-sm font-semibold mb-1">기간</label>
+          <input id="evalPeriod" value="${ev.period||''}" class="w-full border rounded px-3 py-2" placeholder="2026.04.27~05.08"></div>
+      </div>
+      <table class="w-full text-sm border mb-4">
+        <thead class="bg-gray-100"><tr><th class="p-2 w-12">No</th><th class="p-2 text-left">평가 기준</th><th class="p-2 text-left" style="width:30%;">평가 내용</th><th class="p-2 w-16">평점</th><th class="p-2 w-20">점수</th><th class="p-2 text-left" style="width:15%;">비고</th></tr></thead>
+        <tbody>${itemRows}
+          <tr class="bg-gray-200 font-bold"><td class="p-2" colspan="3">점 수 합 계</td><td class="p-2 text-center">100</td><td class="p-2 text-center" id="evalTotal">${totalScore}</td><td class="p-2"></td></tr>
+        </tbody>
+      </table>
+      <div class="flex items-center gap-4 bg-gray-50 p-4 rounded mb-4">
+        <span class="font-bold">결과:</span>
+        <span class="text-2xl font-bold" id="evalLevel">${totalScore}점 → 레벨 ${level}</span>
+        <span class="text-xs text-gray-500">(레벨1: 20~40 / 레벨2: 41~60 / 레벨3: 61~80 / 레벨4: 81~100)</span>
+      </div>
+      <div class="border-t pt-4"><h3 class="font-bold mb-2">📝 결재 라인</h3>
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="block text-xs font-semibold text-gray-600 mb-1">담당자 (평가자)</label><div class="bg-gray-50 border rounded px-3 py-2 text-sm">${ev.evaluatorName||'-'}</div></div>
+          <div><label class="block text-xs font-semibold text-gray-600 mb-1">검토자</label>
+            <select id="evalReviewer" class="w-full border rounded px-3 py-2 text-sm"><option value="">-- 검토자 --</option>${revCandidates.map(n=>`<option value="${n}" ${defaultRev===n?'selected':''}>${n}</option>`).join("")}</select></div>
+          <div><label class="block text-xs font-semibold text-gray-600 mb-1">부서장</label>
+            <select id="evalManager" class="w-full border rounded px-3 py-2 text-sm"><option value="">-- 부서장 --</option>${mgrCandidates.map(n=>`<option value="${n}" ${defaultMgr===n?'selected':''}>${n}</option>`).join("")}</select></div>
+        </div></div>
+    </div></div>`;
+}
+
+function renderEvalPrint() {
+  const ev = state.currentEval || (state.evals.find(e=>e.id===state.printEvalId));
+  if (!ev) return '<div class="p-6">데이터 없음</div>';
+  const proc = findProcess(ev.processId);
+  const trainee = state.settings.trainees.find(t=>t.name===ev.traineeName);
+  const totalScore = ev.scores.reduce((a,b)=>a+b,0);
+  const a = ev.approvers || {};
+  const instSig = a.instructor&&a.instructor.approved ? `<div style="font-size:14px;font-weight:bold;color:#1e40af;font-family:'Gungsuh',serif;">${a.instructor.name}</div>` : '';
+  const revSig = a.reviewer&&a.reviewer.approved ? `<div style="font-size:14px;font-weight:bold;color:#1e40af;font-family:'Gungsuh',serif;">${a.reviewer.name}</div>` : '';
+  const mgrSig = a.manager&&a.manager.approved ? `<div style="font-size:14px;font-weight:bold;color:#1e40af;font-family:'Gungsuh',serif;">${a.manager.name}</div>` : '';
+
+  return `<div class="max-w-4xl mx-auto p-4">
+    <div class="no-print mb-4 flex gap-2 justify-end">
+      <button data-action="goEvalList" class="bg-gray-500 text-white px-4 py-2 rounded-lg">← 목록</button>
+      <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded-lg">🖨️ 인쇄</button>
+    </div>
+    <div class="print-page bg-white shadow-lg p-10" style="font-family:'Malgun Gothic',sans-serif;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="font-size:20px;font-weight:bold;">Skill Evaluation Sheet</div>
+        <table style="border-collapse:collapse;">
+          <tr><td style="border:1px solid #000;padding:3px 14px;font-size:11px;text-align:center;">확 인</td><td style="border:1px solid #000;padding:3px 14px;font-size:11px;text-align:center;">검 토</td><td style="border:1px solid #000;padding:3px 14px;font-size:11px;text-align:center;">승 인</td></tr>
+          <tr><td style="border:1px solid #000;height:40px;text-align:center;">${instSig}</td><td style="border:1px solid #000;text-align:center;">${revSig}</td><td style="border:1px solid #000;text-align:center;">${mgrSig}</td></tr>
+        </table>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;">
+        <tr><td style="border:1px solid #000;padding:5px;background:#f3f4f6;font-weight:bold;width:60px;">기 간</td><td style="border:1px solid #000;padding:5px;" colspan="2">${ev.period||ev.evalPeriod||'-'}</td>
+          <td style="border:1px solid #000;padding:5px;background:#f3f4f6;font-weight:bold;">평가자</td><td style="border:1px solid #000;padding:5px;background:#f3f4f6;font-weight:bold;">평가일</td><td style="border:1px solid #000;padding:5px;background:#f3f4f6;font-weight:bold;">총점</td></tr>
+        <tr><td style="border:1px solid #000;" colspan="3"></td><td style="border:1px solid #000;padding:5px;">${ev.evaluatorName||'-'}</td><td style="border:1px solid #000;padding:5px;">${ev.evalDate||'-'}</td><td style="border:1px solid #000;padding:5px;font-weight:bold;font-size:16px;">${totalScore}</td></tr>
+        <tr><td style="border:1px solid #000;padding:5px;background:#f3f4f6;font-weight:bold;">라인</td><td style="border:1px solid #000;padding:5px;" colspan="2">${ev.line||'-'} / ${proc?proc.name:'-'}</td>
+          <td style="border:1px solid #000;padding:5px;background:#f3f4f6;">직급</td><td style="border:1px solid #000;padding:5px;background:#f3f4f6;">성명</td><td style="border:1px solid #000;padding:5px;background:#f3f4f6;">입사</td></tr>
+        <tr><td style="border:1px solid #000;" colspan="3"></td><td style="border:1px solid #000;padding:5px;">${trainee?trainee.position||'-':'-'}</td><td style="border:1px solid #000;padding:5px;font-weight:bold;">${ev.traineeName||'-'}</td><td style="border:1px solid #000;padding:5px;">${trainee?trainee.joinDate||'-':'-'}</td></tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead><tr style="background:#f3f4f6;"><th style="border:1px solid #000;padding:4px;width:30px;">No</th><th style="border:1px solid #000;padding:4px;">평가 기준</th><th style="border:1px solid #000;padding:4px;">평가 내용</th><th style="border:1px solid #000;padding:4px;width:40px;">평점</th><th style="border:1px solid #000;padding:4px;width:50px;">점수</th><th style="border:1px solid #000;padding:4px;width:80px;">비고</th></tr></thead>
+        <tbody>
+          ${(ev.criteria||EVAL_CRITERIA).map((c,idx)=>`<tr><td style="border:1px solid #000;padding:4px;text-align:center;">${c.no}</td><td style="border:1px solid #000;padding:4px;">${c.title}</td><td style="border:1px solid #000;padding:4px;">${ev.contents[idx]||'-'}</td><td style="border:1px solid #000;padding:4px;text-align:center;">${c.max}</td><td style="border:1px solid #000;padding:4px;text-align:center;font-weight:bold;">${ev.scores[idx]}</td><td style="border:1px solid #000;padding:4px;font-size:10px;">${ev.remarks[idx]||''}</td></tr>`).join("")}
+          <tr style="font-weight:bold;"><td style="border:1px solid #000;padding:4px;" colspan="3">점 수 합 계</td><td style="border:1px solid #000;padding:4px;text-align:center;">100</td><td style="border:1px solid #000;padding:4px;text-align:center;font-size:14px;">${totalScore}</td><td style="border:1px solid #000;"></td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:11px;margin-top:4px;">레벨 1 : 20~40 &nbsp; 레벨 2 : 41~60 &nbsp; 레벨 3 : 61~80 &nbsp; 레벨 4 : 81~100</div>
+      ${ev.reference ? `<div style="font-size:11px;margin-top:8px;"><b>참조:</b> ${ev.reference}</div>` : ''}
+    </div></div>`;
+}
+
+// ============ ✅ 결재함 ============
+function renderApprovals() {
+  const allItems = [];
+  const isDone = (a) => a.instructor.approved && (!(a.reviewer&&a.reviewer.name) || a.reviewer.approved) && a.manager.approved;
+  state.logs.forEach(l=>{
+    const a=l.approvers;if(!a)return;
+    if(!a.reviewer)a.reviewer={name:"",approved:false,approvedAt:""};
+    const p=findProcess(l.processId);
+    allItems.push({type:'교육일지',id:l.id,name:p?p.name:(l.courseName||'-'),trainee:(l.trainees||[]).join(','),date:l.startDate,
+      instructor:a.instructor, reviewer:a.reviewer, manager:a.manager, done:isDone(a), printAction:'print'});
+  });
+  state.evals.forEach(e=>{
+    const a=e.approvers;if(!a)return;
+    if(!a.reviewer)a.reviewer={name:"",approved:false,approvedAt:""};
+    const p=findProcess(e.processId);
+    allItems.push({type:'스킬평가',id:e.id,name:p?p.name:'-',trainee:e.traineeName,date:e.evalDate,
+      instructor:a.instructor, reviewer:a.reviewer, manager:a.manager, done:isDone(a), printAction:'editEval'});
+  });
+
+  const pending=allItems.filter(i=>!i.done).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const completed=allItems.filter(i=>i.done).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  const renderItem = (it)=>{
+    const instOk=it.instructor.approved;
+    const hasRev=!!(it.reviewer&&it.reviewer.name);
+    const revOk=!hasRev||it.reviewer.approved;
+    const mgrOk=it.manager.approved;
+    const stepBox=(label,name,ok,active)=>ok
+      ?`<div class="bg-green-50 border border-green-300 rounded px-3 py-2 text-center"><div class="text-xs text-gray-500">${label}</div><div class="font-bold text-green-700">${name||'-'} ✓</div></div>`
+      :`<div class="${active?'bg-blue-50 border-blue-400':'bg-gray-50 border-gray-300'} border rounded px-3 py-2 text-center"><div class="text-xs text-gray-500">${label}</div><div class="font-bold ${active?'text-blue-600':'text-gray-400'}">${name||'(미지정)'}</div></div>`;
+    // 순차: 담당자 → 검토자(있으면) → 부서장
+    let btn='';
+    if(!instOk&&it.instructor.name) btn=`<button data-action="approveStep" data-id="${it.id}" data-step="instructor" data-type="${it.type}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold">담당자 (${it.instructor.name}) 승인</button>`;
+    else if(instOk&&hasRev&&!it.reviewer.approved) btn=`<button data-action="approveStep" data-id="${it.id}" data-step="reviewer" data-type="${it.type}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold">검토자 (${it.reviewer.name}) 승인</button>`;
+    else if(instOk&&revOk&&!mgrOk&&it.manager.name) btn=`<button data-action="approveStep" data-id="${it.id}" data-step="manager" data-type="${it.type}" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold">부서장 (${it.manager.name}) 승인</button>`;
+    // 검토자 유무에 따라 2열 또는 3열
+    const boxes = hasRev
+      ? `<div class="grid grid-cols-3 gap-2 mb-3">${stepBox("담당자",it.instructor.name,instOk,!instOk)}${stepBox("검토자",it.reviewer.name,it.reviewer.approved,instOk&&!it.reviewer.approved)}${stepBox("부서장",it.manager.name,mgrOk,instOk&&revOk&&!mgrOk)}</div>`
+      : `<div class="grid grid-cols-2 gap-2 mb-3">${stepBox("담당자",it.instructor.name,instOk,!instOk)}${stepBox("부서장",it.manager.name,mgrOk,instOk&&!mgrOk)}</div>`;
+    return `<div class="bg-white rounded-lg shadow border-l-4 ${it.done?'border-green-500':'border-blue-500'} p-4 mb-3">
+      <div class="flex justify-between items-start mb-3"><div><div class="text-xs text-gray-500">${it.type} · ${it.date||'-'}</div><div class="font-bold text-lg">${it.name}</div><div class="text-xs text-gray-500">대상: ${it.trainee||'-'}</div></div>
+        <button data-action="${it.printAction}" data-id="${it.id}" class="text-blue-600 hover:underline text-xs">📄 보기</button></div>
+      ${boxes}
+      ${btn?`<div class="flex justify-end">${btn}</div>`:''}</div>`;
+  };
+
+  return `<div class="max-w-5xl mx-auto p-6">${navBar('approvals')}
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-4"><h1 class="text-2xl font-bold">✅ 결재함</h1>
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="bg-blue-50 p-3 rounded"><div class="text-xs text-gray-600">대기</div><div class="text-2xl font-bold text-blue-700">${pending.length}</div></div>
+        <div class="bg-green-50 p-3 rounded"><div class="text-xs text-gray-600">완료</div><div class="text-2xl font-bold text-green-700">${completed.length}</div></div>
+      </div>
+    </div>
+    ${pending.length>0?`<div class="mb-6"><h2 class="text-lg font-bold text-blue-700 mb-3">🔔 대기 (${pending.length})</h2>${pending.map(renderItem).join("")}</div>`:''}
+    ${completed.length>0?`<div class="mb-6"><h2 class="text-lg font-bold text-green-700 mb-3">✅ 완료 (${completed.length})</h2>${completed.slice(0,20).map(renderItem).join("")}</div>`:''}
+    ${pending.length===0&&completed.length===0?'<div class="bg-white rounded-xl shadow p-8 text-center text-gray-500">결재 대상이 없습니다</div>':''}
+  </div>`;
+}
+
+// ============ ⚙️ 설정 ============
+function renderSettings() {
+  const tab = state.settingsTab;
+  const tabs = [
+    { k:"lines", n:"🏭 라인 관리" },
+    { k:"processes", n:"🔧 공정 관리" },
+    { k:"departments", n:"🎯 부서 관리" },
+    { k:"instructors", n:"👨‍🏫 강사 관리" },
+    { k:"trainees", n:"👥 피교육자 관리" },
+    { k:"evalMethods", n:"📋 평가방법 관리" },
+    { k:"evalCriteria", n:"📝 스킬평가 항목" },
+    { k:"bulk", n:"📥 일괄 입력" },
+    { k:"email", n:"📧 메일 알림" },
+    { k:"google", n:"☁ 자동 동기화" }
+  ];
+
+  let content = "";
+  if (tab === "lines") content = renderSimpleList("lines", "라인");
+  else if (tab === "processes") content = renderProcessSettings();
+  else if (tab === "departments") content = renderDepartmentSettings();
+  else if (tab === "instructors") content = renderPeopleSettings("instructors", "강사", true);
+  else if (tab === "trainees") content = renderPeopleSettings("trainees", "피교육자", false);
+  else if (tab === "evalMethods") content = renderSimpleList("evalMethods", "평가방법");
+  else if (tab === "evalCriteria") content = renderEvalCriteriaSettings();
+  else if (tab === "bulk") content = renderBulkImport();
+  else if (tab === "email") content = renderEmailSettings();
+  else if (tab === "google") content = renderGoogleSync();
+
+  return `
+  <div class="max-w-6xl mx-auto p-6">
+    ${navBar('settings')}
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">⚙️ 시스템 설정</h2>
+        <button data-action="lockSettings" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-sm">🔒 설정 잠그기</button>
+      </div>
+      <div class="flex gap-2 mb-6 border-b flex-wrap">
+        ${tabs.map(t => `<button data-action="tab" data-tab="${t.k}" class="px-4 py-2 ${tab===t.k?'border-b-2 border-blue-600 text-blue-600 font-semibold':'text-gray-600'}">${t.n}</button>`).join("")}
+      </div>
+      ${content}
+      <div class="mt-6 pt-4 border-t flex justify-between items-center">
+        <div class="text-xs text-gray-500">💾 변경사항은 자동 저장됩니다</div>
+        <div class="flex gap-2">
+          <button data-action="exportSettings" class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm">설정 내보내기</button>
+          <label class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm cursor-pointer">
+            설정 가져오기
+            <input type="file" id="importSettings" accept=".json" class="hidden">
+          </label>
+          <button data-action="resetSettings" class="bg-red-600 text-white px-3 py-1.5 rounded text-sm">초기화</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============ 📥 일괄 입력 (엑셀) ============
+function renderBulkImport() {
+  return `
+    <div class="space-y-6">
+      <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+        <h3 class="font-bold text-yellow-800 mb-2">📥 엑셀로 일괄 입력</h3>
+        <p class="text-sm text-gray-700">기존 공정교육 이수 기록과 스킬평가 점수를 엑셀로 한 번에 입력할 수 있습니다.</p>
+        <p class="text-xs text-gray-500 mt-1">⚠️ 공정교육·스킬평가 모두 <b>덮어쓰기</b> 방식입니다. 같은 인원·공정 기록이 이미 있으면 새 내용으로 교체됩니다. (기존 사원 초기 세팅용)</p>
+      </div>
+
+      <!-- 공정교육 일괄 입력 -->
+      <div class="bg-white border rounded-lg p-4">
+        <h4 class="font-bold text-blue-700 mb-2">📋 공정교육 일괄 입력</h4>
+        <p class="text-xs text-gray-600 mb-3">템플릿을 다운로드 → 교육 완료일을 입력 → 업로드하면 교육일지가 자동 생성됩니다.</p>
+        <div class="flex gap-2 items-center">
+          <button data-action="downloadTrainingTemplate" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold">📥 공정교육 템플릿 다운로드</button>
+          <label class="bg-green-600 text-white px-4 py-2 rounded text-sm font-semibold cursor-pointer">
+            📤 공정교육 엑셀 업로드
+            <input type="file" id="uploadTrainingExcel" accept=".xlsx,.xls" class="hidden">
+          </label>
+        </div>
+        <div class="mt-3 text-xs text-gray-500">
+          <b>작성 방법:</b> 행=피교육자, 열=공정. 교육 완료한 셀에 날짜(2025-06-15) 입력. 빈칸은 미이수.
+        </div>
+      </div>
+
+      <!-- 스킬평가 일괄 입력 -->
+      <div class="bg-white border rounded-lg p-4">
+        <h4 class="font-bold text-purple-700 mb-2">📝 스킬평가 일괄 입력</h4>
+        <p class="text-xs text-gray-600 mb-3">템플릿을 다운로드 → 평가 점수(0~100)를 입력 → 업로드하면 스킬평가가 자동 생성됩니다.</p>
+        <div class="flex gap-2 items-center">
+          <button data-action="downloadEvalTemplate" class="bg-purple-600 text-white px-4 py-2 rounded text-sm font-semibold">📥 스킬평가 템플릿 다운로드</button>
+          <label class="bg-green-600 text-white px-4 py-2 rounded text-sm font-semibold cursor-pointer">
+            📤 스킬평가 엑셀 업로드
+            <input type="file" id="uploadEvalExcel" accept=".xlsx,.xls" class="hidden">
+          </label>
+        </div>
+        <div class="mt-3 text-xs text-gray-500">
+          <b>작성 방법:</b> 행=피교육자, 열=공정. 총점(0~100)을 입력. 빈칸은 미평가. 평가일/평가자 열도 입력 가능.
+        </div>
+      </div>
+
+      <!-- 일괄 데이터 삭제 -->
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <h4 class="font-bold text-red-700 mb-2">🗑️ 데이터 일괄 삭제</h4>
+        <p class="text-xs text-gray-600 mb-3">일괄입력으로 들어간 교육/평가 기록을 삭제합니다. <b>인원·공정 설정은 그대로 유지</b>되고 교육일지/스킬평가 기록만 지워집니다. (되돌릴 수 없으니 주의)</p>
+        <div class="flex gap-2 items-center flex-wrap">
+          <select id="bulkDelDept" class="border rounded px-3 py-2 text-sm">
+            <option value="__ALL__">전체 부서</option>
+            ${(state.settings.departments||[]).map(d=>`<option value="${d.name}">${d.name}만</option>`).join("")}
+          </select>
+          <button data-action="bulkDeleteLogs" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-semibold">공정교육 기록 삭제</button>
+          <button data-action="bulkDeleteEvals" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-semibold">스킬평가 기록 삭제</button>
+          <button data-action="bulkDeleteBoth" class="bg-red-800 text-white px-4 py-2 rounded text-sm font-semibold">둘 다 삭제</button>
+        </div>
+        <div class="mt-2 text-xs text-red-500">⚠️ 삭제 전 반드시 백업(설정 → 내보내기)을 권장합니다.</div>
+      </div>
+
+      <div id="bulkImportResult"></div>
+    </div>`;
+}
+
+// 공정교육 템플릿 다운로드
+function downloadTrainingTemplate() {
+  const depts = state.settings.departments || [];
+  const wb = XLSX.utils.book_new();
+
+  depts.forEach(dept => {
+    const trainees = state.settings.trainees.filter(t => t.dept === dept.name);
+    let procs = state.settings.processes.filter(p => (dept.requiredProcessIds||[]).includes(p.id));
+    procs = sortProcsByLineOrder(procs, dept.name);
+    if (trainees.length === 0 || procs.length === 0) return;
+
+    // 헤더: 이름 | 부서 | 공정1 | 공정2 | ...
+    const headers = ["이름", "부서", ...procs.map(p => `${lineLabelFull(p.line)} / ${p.name}`)];
+    const procIds = ["_name", "_dept", ...procs.map(p => p.id)]; // 숨김 ID 행
+
+    const data = [headers];
+    // ID 행 (숨김용 - 업로드 시 공정 매핑에 사용)
+    data.push(["(공정ID)", "", ...procs.map(p => p.id)]);
+
+    trainees.forEach(t => {
+      const row = [t.name, t.dept || dept.name];
+      procs.forEach(p => {
+        // 이미 교육 이수한 경우 날짜 미리 채우기
+        const log = state.logs.find(l => l.processId === p.id && (l.trainees||[]).includes(t.name));
+        row.push(log ? (log.startDate || "이수") : "");
+      });
+      data.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    // 열 너비 설정
+    ws['!cols'] = [{ wch: 12 }, { wch: 8 }, ...procs.map(() => ({ wch: 16 }))];
+    XLSX.utils.book_append_sheet(wb, ws, dept.name);
+  });
+
+  XLSX.writeFile(wb, `공정교육_일괄입력_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// 스킬평가 템플릿 다운로드
+function downloadEvalTemplate() {
+  const depts = state.settings.departments || [];
+  const wb = XLSX.utils.book_new();
+
+  depts.forEach(dept => {
+    const trainees = state.settings.trainees.filter(t => t.dept === dept.name);
+    let procs = state.settings.processes.filter(p => (dept.requiredProcessIds||[]).includes(p.id));
+    procs = sortProcsByLineOrder(procs, dept.name);
+    if (trainees.length === 0 || procs.length === 0) return;
+
+    const headers = ["이름", "부서", "평가자", "평가일", ...procs.map(p => `${lineLabelFull(p.line)} / ${p.name}`)];
+    const data = [headers];
+    data.push(["(공정ID)", "", "", "", ...procs.map(p => p.id)]);
+
+    trainees.forEach(t => {
+      const row = [t.name, t.dept || dept.name, "", ""];
+      procs.forEach(p => {
+        // 이미 스킬평가가 있으면 최고 점수 미리 채우기
+        const skill = getSkillLevel(t.name, p.id);
+        row.push(skill.score100 != null ? skill.score100 : "");
+      });
+      data.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, ...procs.map(() => ({ wch: 16 }))];
+    XLSX.utils.book_append_sheet(wb, ws, dept.name);
+  });
+
+  XLSX.writeFile(wb, `스킬평가_일괄입력_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// 공정교육 엑셀 업로드 파싱
+function uploadTrainingExcel(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      let totalAdded = 0;
+      let totalOverwritten = 0;
+
+      wb.SheetNames.forEach(sheetName => {
+        const ws = wb.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+        if (data.length < 3) return; // 헤더 + ID행 + 최소 1명
+
+        const headers = data[0];
+        const idRow = data[1]; // 공정 ID 행
+
+        for (let r = 2; r < data.length; r++) {
+          const row = data[r];
+          const traineeName = (row[0]||"").trim();
+          if (!traineeName) continue;
+
+          for (let c = 2; c < headers.length; c++) {
+            const cellVal = (row[c]||"").toString().trim();
+            if (!cellVal) continue;
+
+            const processId = parseInt(idRow[c]);
+            if (!processId || isNaN(processId)) continue;
+
+            // 이미 이 인원+공정 교육일지가 있으면 제거하고 새로 등록 (덮어쓰기)
+            const existIdx = state.logs.findIndex(l => l.processId === processId && (l.trainees||[]).includes(traineeName));
+            let wasOverwrite = false;
+            if (existIdx >= 0) {
+              // 해당 인원만 그 로그에서 빼고, 다른 인원이 없으면 로그 자체 삭제
+              const exLog = state.logs[existIdx];
+              if ((exLog.trainees||[]).length > 1) {
+                exLog.trainees = exLog.trainees.filter(n => n !== traineeName);
+              } else {
+                state.logs.splice(existIdx, 1);
+              }
+              wasOverwrite = true;
+            }
+
+            // 날짜 파싱
+            let dateStr = cellVal;
+            if (cellVal === "이수") dateStr = new Date().toISOString().slice(0,10);
+            else if (cellVal instanceof Date) dateStr = cellVal.toISOString().slice(0,10);
+            else {
+              // 다양한 날짜 형식 처리
+              const cleaned = cellVal.replace(/\./g, '-').replace(/\//g, '-');
+              const d = new Date(cleaned);
+              dateStr = isNaN(d.getTime()) ? new Date().toISOString().slice(0,10) : d.toISOString().slice(0,10);
+            }
+
+            const proc = findProcess(processId);
+            const log = {
+              id: Date.now() + Math.random(),
+              line: proc ? proc.line : "",
+              processId: processId,
+              courseName: proc ? proc.name : "",
+              instructorName: "일괄입력",
+              instructorPosition: "",
+              instructorDept: sheetName,
+              startDate: dateStr,
+              endDate: dateStr,
+              hours: 2,
+              evalMethod: "일괄입력",
+              trainees: [traineeName],
+              content: proc ? (proc.content || "일괄 입력으로 등록됨") : "일괄 입력으로 등록됨",
+              instructorEval: "",
+              scores: [5,5,5,5,5],
+              opinion: "",
+              approvers: { instructor:{name:"일괄입력",approved:true,approvedAt:dateStr}, reviewer:{name:"",approved:false,approvedAt:""}, manager:{name:"일괄입력",approved:true,approvedAt:dateStr} },
+              createdAt: new Date().toISOString(),
+              bulkImported: true
+            };
+            state.logs.push(log);
+            totalAdded++;
+            if (wasOverwrite) totalOverwritten++;
+
+            // 6개월 후 스킬평가 일정 자동 생성
+            generateSkillEvalSchedule(traineeName, processId, dateStr);
+          }
+        }
+      });
+
+      if (totalAdded > 0) {
+        saveLogs(state.logs);
+        alert(`✅ 공정교육 ${totalAdded}건이 일괄 등록되었습니다.\n(그 중 ${totalOverwritten}건은 기존 기록을 덮어썼습니다)`);
+        render();
+      } else {
+        alert("등록할 교육 기록이 없습니다.\n(빈 셀만 있거나 유효한 공정이 없습니다)");
+      }
+    } catch(err) {
+      alert("엑셀 파싱 오류: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// 스킬평가 엑셀 업로드 파싱
+function uploadEvalExcel(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      let totalAdded = 0;
+      let totalOverwritten = 0;
+
+      wb.SheetNames.forEach(sheetName => {
+        const ws = wb.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+        if (data.length < 3) return;
+
+        const headers = data[0];
+        const idRow = data[1];
+
+        for (let r = 2; r < data.length; r++) {
+          const row = data[r];
+          const traineeName = (row[0]||"").trim();
+          if (!traineeName) continue;
+          const evaluator = (row[2]||"일괄입력").toString().trim();
+          let evalDate = (row[3]||"").toString().trim();
+          if (!evalDate) evalDate = new Date().toISOString().slice(0,10);
+          else {
+            const cleaned = evalDate.replace(/\./g, '-').replace(/\//g, '-');
+            const d = new Date(cleaned);
+            evalDate = isNaN(d.getTime()) ? new Date().toISOString().slice(0,10) : d.toISOString().slice(0,10);
+          }
+
+          for (let c = 4; c < headers.length; c++) {
+            const cellVal = (row[c]||"").toString().trim();
+            if (!cellVal) continue;
+            const score = parseFloat(cellVal);
+            if (isNaN(score) || score <= 0) continue;
+
+            const processId = parseInt(idRow[c]);
+            if (!processId || isNaN(processId)) continue;
+
+            // 같은 인원+공정의 기존 스킬평가가 있으면 모두 제거 후 새로 등록 (덮어쓰기)
+            let wasOverwrite = false;
+            for (let k = state.evals.length - 1; k >= 0; k--) {
+              if (state.evals[k].traineeName === traineeName && state.evals[k].processId === processId) {
+                state.evals.splice(k, 1);
+                wasOverwrite = true;
+              }
+            }
+
+            const totalScore = Math.min(100, Math.max(0, Math.round(score)));
+            let level = 0;
+            if (totalScore >= 81) level = 4;
+            else if (totalScore >= 61) level = 3;
+            else if (totalScore >= 41) level = 2;
+            else if (totalScore >= 21) level = 1;
+
+            const proc = findProcess(processId);
+            // 10개 항목에 점수를 균등 분배
+            const perItem = Math.round(totalScore / 10);
+            const scores = Array(10).fill(perItem);
+            // 나머지 보정
+            const diff = totalScore - scores.reduce((a,b)=>a+b,0);
+            if (diff !== 0) scores[0] += diff;
+
+            const ev = {
+              id: Date.now() + Math.random(),
+              traineeName: traineeName,
+              processId: processId,
+              line: proc ? proc.line : "",
+              evaluatorName: evaluator,
+              evalDate: evalDate,
+              period: "",
+              scores: scores,
+              contents: Array(10).fill(""),
+              remarks: Array(10).fill(""),
+              totalScore: totalScore,
+              level: level,
+              reference: "엑셀 일괄 입력",
+              criteria: JSON.parse(JSON.stringify(getEvalCriteria(proc))),
+              approvers: { instructor:{name:evaluator,approved:true,approvedAt:evalDate}, reviewer:{name:"",approved:false,approvedAt:""}, manager:{name:"일괄입력",approved:true,approvedAt:evalDate} },
+              createdAt: new Date().toISOString(),
+              bulkImported: true
+            };
+            state.evals.push(ev);
+            totalAdded++;
+            if (wasOverwrite) totalOverwritten++;
+          }
+        }
+      });
+
+      if (totalAdded > 0) {
+        saveEvals(state.evals);
+        alert(`✅ 스킬평가 ${totalAdded}건이 일괄 등록되었습니다.\n(그 중 ${totalOverwritten}건은 기존 기록을 덮어썼습니다)`);
+        render();
+      } else {
+        alert("새로 등록할 스킬평가가 없습니다.\n(빈 셀이거나 0점입니다)");
+      }
+    } catch(err) {
+      alert("엑셀 파싱 오류: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderEvalCriteriaSettings() {
+  const criteria = getEvalCriteria();
+  const rows = criteria.map((c, i) => `
+    <tr class="border-b">
+      <td class="p-2 text-center font-bold">${c.no}</td>
+      <td class="p-2"><input class="ec-title w-full border rounded px-2 py-1 text-sm" data-idx="${i}" value="${c.title}"></td>
+      <td class="p-2"><input class="ec-lv0 w-full border rounded px-2 py-1 text-xs" data-idx="${i}" value="${c.lv0||''}" placeholder="0점 기준"></td>
+      <td class="p-2"><input class="ec-lv5 w-full border rounded px-2 py-1 text-xs" data-idx="${i}" value="${c.lv5||''}" placeholder="5점 기준"></td>
+      <td class="p-2"><input class="ec-lv10 w-full border rounded px-2 py-1 text-xs" data-idx="${i}" value="${c.lv10||''}" placeholder="10점 기준"></td>
+    </tr>
+  `).join("");
+
+  return `
+    <div class="mb-3">
+      <div class="bg-yellow-50 border border-yellow-300 rounded p-3 text-sm text-yellow-800 mb-4">
+        ⚠️ <b>수정해도 기존에 작성된 스킬 평가는 변경되지 않습니다.</b><br>
+        수정 후 새로 작성하는 스킬 평가부터 변경된 항목이 적용됩니다.
+      </div>
+      <table class="w-full text-sm border">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 w-10">No</th>
+            <th class="p-2 text-left" style="width:25%;">평가 기준</th>
+            <th class="p-2 text-left">0점 기준</th>
+            <th class="p-2 text-left">5점 기준</th>
+            <th class="p-2 text-left">10점 기준</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="flex gap-2 mt-3 justify-end">
+        <button data-action="saveEvalCriteria" class="bg-blue-600 text-white px-4 py-2 rounded font-semibold">💾 항목 저장</button>
+        <button data-action="resetEvalCriteria" class="bg-gray-500 text-white px-3 py-1.5 rounded text-sm">기본값 복원</button>
+      </div>
+    </div>`;
+}
+
+function renderEmailSettings() {
+  const recipients = state.settings.emailRecipients || [];
+  const rows = recipients.map((email, i) => `
+    <tr class="border-b">
+      <td class="p-2 text-center w-10">${i+1}</td>
+      <td class="p-2"><input class="email-recipient-input w-full border rounded px-3 py-1 text-sm" data-idx="${i}" value="${email}" placeholder="example@eaton.com"></td>
+      <td class="p-2 text-right w-20">
+        <button data-action="delEmailRecipient" data-idx="${i}" class="text-red-600 hover:underline text-xs">삭제</button>
+      </td>
+    </tr>
+  `).join("");
+
+  return `
+    <div class="space-y-4">
+      <div class="bg-blue-50 border border-blue-300 rounded-lg p-4">
+        <h3 class="font-bold text-blue-800 mb-2">📧 자동 메일 알림</h3>
+        <ul class="text-sm text-gray-700 space-y-1">
+          <li><b>매월 1일</b>: 지난달 교육 결과 (완료/미완료) + 이번달 교육 일정</li>
+          <li><b>매월 20일</b>: 이번달 교육 결과 (완료/미완료) + 다음달 교육 일정</li>
+        </ul>
+        <p class="text-xs text-gray-500 mt-2">⚠️ 자동 발송을 활성화하려면 Google Apps Script에서 트리거를 한 번 설정해야 합니다 (script.js 파일 안내 참고).</p>
+      </div>
+
+      <div class="bg-white border rounded-lg p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="font-bold">수신자 목록 (${recipients.length}명)</h4>
+          <button data-action="addEmailRecipient" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-semibold">+ 수신자 추가</button>
+        </div>
+        ${recipients.length === 0
+          ? '<p class="text-center py-6 text-gray-400 text-sm">등록된 수신자가 없습니다.</p>'
+          : `<table class="w-full text-sm">
+              <thead class="bg-gray-100"><tr><th class="p-2 w-10">#</th><th class="p-2 text-left">이메일</th><th class="p-2"></th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>`}
+      </div>
+
+      <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+        <h4 class="font-bold text-yellow-800 mb-2">🧪 테스트 메일 발송</h4>
+        <p class="text-sm text-gray-700 mb-3">위 수신자들에게 지금 즉시 메일을 보내서 확인해볼 수 있습니다.</p>
+        <div class="flex gap-2">
+          <button data-action="sendTestEmail" data-type="day1" class="bg-green-600 text-white px-4 py-2 rounded text-sm font-semibold">📧 매월 1일용 메일 테스트</button>
+          <button data-action="sendTestEmail" data-type="day20" class="bg-orange-600 text-white px-4 py-2 rounded text-sm font-semibold">📧 매월 20일용 메일 테스트</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGoogleSync() {
+  const isAdmin = sbRole === "admin";
+  return `
+    <div class="space-y-4">
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <h3 class="font-bold text-green-800 mb-2">☁ 자동 동기화</h3>
+        <p class="text-sm text-gray-700">모든 데이터가 서버에 실시간 자동 저장됩니다. 여러 PC에서 같은 데이터를 봅니다.</p>
+        <div class="mt-3 text-sm">
+          <div>상태: <b class="text-green-600">✅ 연결됨</b></div>
+          <div>계정: <b>${sbUser ? sbUser.email : '-'}</b> ${isAdmin?'<span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">관리자</span>':''}</div>
+          <div>마지막 저장: <b>${syncStatus.last || '없음'}</b></div>
+          ${syncStatus.error ? `<div class="text-red-600">오류: ${syncStatus.error}</div>` : ''}
+        </div>
+        <div class="flex gap-2 mt-3 flex-wrap">
+          <button data-action="uploadAllToGoogle" class="bg-orange-600 text-white px-3 py-1.5 rounded text-sm">📤 전체 업로드</button>
+          <button data-action="downloadAllFromGoogle" class="bg-purple-600 text-white px-3 py-1.5 rounded text-sm">📥 전체 다운로드</button>
+          <button data-action="sbLogout" class="bg-gray-500 text-white px-3 py-1.5 rounded text-sm ml-auto">로그아웃</button>
+        </div>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 class="font-semibold text-blue-800 mb-2">🔄 기존 데이터 가져오기</h4>
+        <p class="text-xs text-gray-600 mb-2">기존(Google) 교육관리에 저장된 데이터를 이 서버로 한 번에 가져옵니다. 기존 데이터는 그대로 두고 복사만 하며, 서버가 비어있을 때 처음 한 번만 하면 됩니다.</p>
+        <button data-action="migrateFromGoogle" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">📥 기존 데이터 가져오기</button>
+      </div>
+
+      ${isAdmin ? `
+      <div class="bg-gray-50 border rounded-lg p-4">
+        <h4 class="font-semibold text-gray-700 mb-2">👥 승인 사용자 관리 <span class="text-xs text-gray-400">(관리자)</span></h4>
+        <p class="text-xs text-gray-500 mb-2">승인된 이메일만 로그인할 수 있습니다. (가입은 막혀 있음)</p>
+        <div class="flex gap-2 mb-3">
+          <input id="sbNewEmail" type="email" placeholder="추가할 이메일" class="flex-1 border rounded px-3 py-1.5 text-sm">
+          <select id="sbNewRole" class="border rounded px-2 py-1.5 text-sm"><option value="user">일반</option><option value="admin">관리자</option></select>
+          <button data-action="sbAddUser" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">추가</button>
+        </div>
+        <button data-action="sbListUsers" class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm mb-2">목록 불러오기</button>
+        <div id="sbUserList" class="text-sm"></div>
+      </div>` : ''}
+
+      <div class="bg-gray-50 border rounded-lg p-4">
+        <h4 class="font-semibold text-gray-700 mb-2">📁 수동 백업 (JSON)</h4>
+        <p class="text-xs text-gray-500 mb-2">추가 안전장치로 JSON 파일 백업/복원이 가능합니다.</p>
+        <div class="flex gap-2">
+          <button data-action="exportFullBackup" class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm">📥 전체 백업 다운로드</button>
+          <label class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm cursor-pointer">
+            📤 백업 복원
+            <input type="file" id="importFullBackup" accept=".json" class="hidden">
+          </label>
+        </div>
+      </div>
+    </div>`;
+}
+
+// 승인 사용자 관리 (관리자)
+async function sbListUsers() {
+  const c = sbc(); const box = document.getElementById("sbUserList"); if(!c||!box) return;
+  box.innerHTML = '<span class="text-gray-400">불러오는 중…</span>';
+  const { data, error } = await c.from("approved_users").select("email,role").order("email");
+  if(error){ box.innerHTML = '<span class="text-red-600">'+error.message+'</span>'; return; }
+  box.innerHTML = (data||[]).map(u=>`<div class="flex items-center justify-between border-b py-1">
+    <span>${u.email} <span class="text-xs ${u.role==='admin'?'text-blue-600':'text-gray-400'}">(${u.role})</span></span>
+    <button data-action="sbDelUser" data-email="${u.email}" class="text-red-500 hover:text-red-700 text-xs">삭제</button>
+  </div>`).join("") || '<span class="text-gray-400">없음</span>';
+}
+async function sbAddUser() {
+  const c = sbc(); const em = document.getElementById("sbNewEmail"); const ro = document.getElementById("sbNewRole");
+  if(!c||!em) return; const email=(em.value||"").trim().toLowerCase(); if(!email){ alert("이메일을 입력하세요."); return; }
+  const { error } = await c.from("approved_users").upsert({ email, role: ro?ro.value:"user" }, { onConflict:"email" });
+  if(error){ alert("추가 실패: "+error.message); return; }
+  em.value=""; alert("추가되었습니다.\n(해당 사용자는 로그인 계정도 별도로 등록되어 있어야 로그인됩니다)"); sbListUsers();
+}
+async function sbDelUser(email) {
+  const c = sbc(); if(!c) return;
+  if(email && sbUser && email===sbUser.email.toLowerCase()){ alert("본인 계정은 삭제할 수 없습니다."); return; }
+  if(!confirm(email+" 을(를) 승인 목록에서 삭제할까요?")) return;
+  const { error } = await c.from("approved_users").delete().eq("email", email);
+  if(error){ alert("삭제 실패: "+error.message); return; }
+  sbListUsers();
+}
+
+function renderDepartmentSettings() {
+  const depts = state.settings.departments || [];
+  // 라인별 공정 그룹화
+  const byLine = {};
+  state.settings.processes.forEach(p => {
+    if (!byLine[p.line]) byLine[p.line] = [];
+    byLine[p.line].push(p);
+  });
+
+  const sections = depts.map((d, di) => {
+    const reqSet = new Set(d.requiredProcessIds || []);
+    const lineGroups = Object.keys(byLine).sort().map(line => {
+      const items = byLine[line].map(p => `
+        <label class="inline-flex items-center gap-1.5 p-1.5 rounded border ${reqSet.has(p.id)?'bg-blue-100 border-blue-400':'bg-white border-gray-200'} cursor-pointer hover:bg-blue-50 text-xs">
+          <input type="checkbox" class="dept-process-cb" data-didx="${di}" data-pid="${p.id}" ${reqSet.has(p.id)?'checked':''}>
+          <span>${p.name}</span>
+        </label>
+      `).join("");
+      return `
+        <div class="mb-2">
+          <div class="text-xs font-semibold text-blue-700 mb-1">🏭 ${line}</div>
+          <div class="flex flex-wrap gap-1.5">${items}</div>
+        </div>`;
+    }).join("");
+
+    // 부서장 선택 옵션 (강사 마스터에서 같은 부서 사람만)
+    const mgrCandidates = state.settings.instructors.filter(i => i.dept === d.name).map(i => i.name);
+    const allCandidates = [...new Set([...mgrCandidates, ...state.settings.trainees.filter(t=>t.dept===d.name).map(t=>t.name)])];
+    const mgrOpts = allCandidates.map(n => `<option ${(d.manager||'')===n?'selected':''}>${n}</option>`).join("");
+
+    return `
+      <div class="border rounded-lg p-4 mb-3 bg-white">
+        <div class="flex justify-between items-center mb-3 pb-2 border-b">
+          <div class="flex items-center gap-3 flex-wrap">
+            <input type="text" value="${d.name}" data-action="editDeptName" data-idx="${di}" class="dept-name-input text-lg font-bold border rounded px-2 py-1">
+            <span class="text-sm text-gray-500">필수 교육: <b class="text-blue-700">${(d.requiredProcessIds||[]).length}</b>개</span>
+            <span class="text-sm text-gray-500 border-l pl-3 ml-1">부서장:
+              <select class="dept-manager-select border rounded px-2 py-1 text-sm ml-1" data-didx="${di}">
+                <option value="">-- 미지정 --</option>
+                ${mgrOpts}
+              </select>
+              <span class="text-xs text-gray-400 ml-1">(결재 3단계 기본값)</span>
+            </span>
+          </div>
+          <button data-action="delDept" data-idx="${di}" class="text-red-600 hover:underline text-sm">부서 삭제</button>
+        </div>
+        ${lineGroups || '<div class="text-sm text-gray-500">등록된 공정이 없습니다.</div>'}
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm text-gray-600">부서별로 필수 교육 공정을 지정합니다. 피교육자가 해당 부서 소속이면 여기 체크된 모든 공정 교육을 받아야 합니다.</p>
+      <button data-action="addDept" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">+ 부서 추가</button>
+    </div>
+    ${sections || '<div class="text-center text-gray-500 py-8 border rounded">등록된 부서가 없습니다.</div>'}`;
+}
+
+function renderProcessSettings() {
+  if (state.editingProcessIdx >= 0) {
+    const isNew = state.editingProcessIdx >= state.settings.processes.length;
+    const p = isNew ? { id:0, line:state.settings.lines[0]||"", name:"", content:"" }
+                    : state.settings.processes[state.editingProcessIdx];
+    const lineOpts = state.settings.lines.map(l=>`<option ${p.line===l?'selected':''}>${l}</option>`).join("");
+    return `
+      <div class="border rounded-lg p-4 bg-gray-50">
+        <h3 class="font-semibold mb-3">${isNew?'➕ 새 공정 추가':'✏️ 공정 편집'}</h3>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-sm font-semibold mb-1">소속 라인 (= 장소)</label>
+            <select id="p_line" class="w-full border rounded px-3 py-2">${lineOpts}</select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">공정명</label>
+            <input id="p_name" value="${p.name}" class="w-full border rounded px-3 py-2">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-semibold mb-1">교육 내용</label>
+            <textarea id="p_content" rows="16" class="w-full border rounded px-3 py-2 font-mono text-xs">${p.content}</textarea>
+          </div>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button data-action="cancelProcess" class="bg-gray-500 text-white px-4 py-2 rounded">취소</button>
+          <button data-action="saveProcess" class="bg-blue-600 text-white px-4 py-2 rounded font-medium">저장</button>
+        </div>
+      </div>`;
+  }
+
+  const byLine = {};
+  state.settings.processes.forEach((p,i) => {
+    const l = p.line || "(미지정)";
+    if (!byLine[l]) byLine[l] = [];
+    byLine[l].push({ p, i });
+  });
+
+  const groups = Object.keys(byLine).map(line => `
+    <div class="mb-4">
+      <h4 class="font-bold text-blue-700 mb-2 bg-blue-50 px-3 py-1.5 rounded">🏭 ${line} <span class="text-xs text-gray-500">(${byLine[line].length}개 공정)</span></h4>
+      <table class="w-full text-sm border">
+        <thead class="bg-gray-100">
+          <tr><th class="p-2 text-left w-12">#</th><th class="p-2 text-left">공정명</th><th class="p-2 text-right w-32">작업</th></tr>
+        </thead>
+        <tbody>
+          ${byLine[line].map((item,j)=>`
+            <tr class="border-b hover:bg-gray-50">
+              <td class="p-2">${j+1}</td>
+              <td class="p-2 font-medium">${item.p.name}</td>
+              <td class="p-2 text-right">
+                <button data-action="editProcess" data-idx="${item.i}" class="text-blue-600 hover:underline mr-2">편집</button>
+                <button data-action="delProcess" data-idx="${item.i}" class="text-red-600 hover:underline">삭제</button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `).join("");
+
+  return `
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm text-gray-600">라인별로 공정을 관리합니다. 먼저 '라인 관리'에서 라인을 등록하세요.</p>
+      <button data-action="addProcess" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">+ 공정 추가</button>
+    </div>
+    ${groups || '<div class="text-center text-gray-500 py-8 border rounded">등록된 공정이 없습니다.</div>'}`;
+}
+
+function renderPeopleSettings(key, label, withPosition) {
+  const people = state.settings[key];
+  const deptOptions = (state.settings.departments||[]).map(d=>d.name);
+  const isTrainee = key === "trainees";
+  const rows = people.map((p,i)=>{
+    const deptCell = isTrainee
+      ? `<td class="p-2"><select data-field="dept" data-key="${key}" data-idx="${i}" class="w-full border rounded px-2 py-1 people-input">
+          <option value="">-- 부서 --</option>
+          ${deptOptions.map(d=>`<option ${p.dept===d?'selected':''}>${d}</option>`).join("")}
+        </select></td>`
+      : `<td class="p-2"><input data-field="dept" data-key="${key}" data-idx="${i}" value="${p.dept||''}" class="w-full border rounded px-2 py-1 people-input"></td>`;
+
+    const photoCell = isTrainee ? `
+      <td class="p-2 text-center" style="width:80px;">
+        <div class="relative inline-block">
+          ${p.photo
+            ? `<img src="${p.photo}" alt="${p.name}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;border:1px solid #d1d5db;display:block;">`
+            : `<div style="width:50px;height:50px;background:#e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#9ca3af;">👤</div>`}
+          <label class="absolute inset-0 cursor-pointer" title="사진 업로드">
+            <input type="file" accept="image/*" class="photo-upload hidden" data-idx="${i}">
+          </label>
+        </div>
+        ${p.photo ? `<button data-action="removePhoto" data-idx="${i}" class="text-xs text-red-500 hover:underline mt-1">삭제</button>` : ''}
+      </td>` : '';
+
+    const joinDateCell = isTrainee ? `
+      <td class="p-2"><input type="date" data-field="joinDate" data-key="${key}" data-idx="${i}" value="${p.joinDate||''}" class="w-full border rounded px-2 py-1 people-input text-xs"></td>
+    ` : '';
+    const resignDateCell = isTrainee ? `
+      <td class="p-2"><input type="date" data-field="resignDate" data-key="${key}" data-idx="${i}" value="${p.resignDate||''}" class="w-full border rounded px-2 py-1 people-input text-xs" ${p.resignDate?'style="background:#fee2e2"':''}></td>
+    ` : '';
+
+    // 강사 마스터에만: 검토자 여부 + 부서장 여부 + 비밀번호
+    const revCell = (key === "instructors") ? `
+      <td class="p-2 text-center"><input type="checkbox" class="instructor-rev-cb" data-idx="${i}" ${p.isReviewer?'checked':''} title="이 사람을 검토자 후보로 등록"></td>
+    ` : '';
+    const mgrCell = (key === "instructors") ? `
+      <td class="p-2 text-center"><input type="checkbox" class="instructor-mgr-cb" data-idx="${i}" ${p.isManager?'checked':''} title="이 사람을 부서장 후보로 등록"></td>
+    ` : '';
+    const pwdCell = (key === "instructors") ? `
+      <td class="p-2"><input type="password" data-field="password" data-key="${key}" data-idx="${i}" value="${p.password||''}" class="w-full border rounded px-2 py-1 people-input text-xs" placeholder="결재용 비밀번호"></td>
+    ` : '';
+
+    return `
+    <tr class="border-b">
+      <td class="p-2">${i+1}</td>
+      ${photoCell}
+      <td class="p-2"><input data-field="name" data-key="${key}" data-idx="${i}" value="${p.name}" class="w-full border rounded px-2 py-1 people-input"></td>
+      ${withPosition?`<td class="p-2"><input data-field="position" data-key="${key}" data-idx="${i}" value="${p.position||''}" class="w-full border rounded px-2 py-1 people-input"></td>`:''}
+      ${deptCell}
+      ${joinDateCell}
+      ${resignDateCell}
+      ${revCell}
+      ${mgrCell}
+      ${pwdCell}
+      <td class="p-2 text-right"><button data-action="delPerson" data-key="${key}" data-idx="${i}" class="text-red-600 hover:underline">삭제</button></td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm text-gray-600">${label} 마스터 목록을 관리합니다.${isTrainee?' 사진 영역을 클릭하여 업로드하세요.':''}${key==='instructors'?' "검토자"/"부서장" 체크 시 결재 라인 후보로 등록됩니다. 비밀번호는 결재 시 본인 인증에 사용됩니다.':''}</p>
+      <button data-action="addPerson" data-key="${key}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">+ ${label} 추가</button>
+    </div>
+    <table class="w-full text-sm border">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="p-2 w-12">#</th>
+          ${isTrainee?'<th class="p-2 text-center" style="width:80px;">사진</th>':''}
+          <th class="p-2 text-left">이름</th>
+          ${withPosition?'<th class="p-2 text-left">직위</th>':''}
+          <th class="p-2 text-left">부서</th>
+          ${isTrainee?'<th class="p-2 text-left">입사일</th>':''}
+          ${isTrainee?'<th class="p-2 text-left">퇴사일</th>':''}
+          ${key==='instructors'?'<th class="p-2 text-center" style="width:60px;">검토자</th>':''}
+          ${key==='instructors'?'<th class="p-2 text-center" style="width:60px;">부서장</th>':''}
+          ${key==='instructors'?'<th class="p-2 text-left" style="width:140px;">비밀번호</th>':''}
+          <th class="p-2 w-20"></th>
+        </tr>
+      </thead>
+      <tbody>${rows||`<tr><td colspan="${colCount+1}" class="p-4 text-center text-gray-500">등록된 ${label}가 없습니다.</td></tr>`}</tbody>
+    </table>`;
+}
+
+function renderSimpleList(key, label) {
+  const items = state.settings[key];
+  const rows = items.map((v,i)=>`
+    <tr class="border-b">
+      <td class="p-2">${i+1}</td>
+      <td class="p-2"><input data-key="${key}" data-idx="${i}" value="${v}" class="w-full border rounded px-2 py-1 simple-input"></td>
+      <td class="p-2 text-right"><button data-action="delSimple" data-key="${key}" data-idx="${i}" class="text-red-600 hover:underline">삭제</button></td>
+    </tr>`).join("");
+
+  return `
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm text-gray-600">${label} 목록을 관리합니다.</p>
+      <button data-action="addSimple" data-key="${key}" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">+ ${label} 추가</button>
+    </div>
+    <table class="w-full text-sm border">
+      <thead class="bg-gray-100"><tr><th class="p-2 w-12">#</th><th class="p-2 text-left">${label}</th><th class="p-2 w-20"></th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="3" class="p-4 text-center text-gray-500">등록된 ${label}가 없습니다.</td></tr>`}</tbody>
+    </table>`;
+}
+
+// ============ Event Handlers ============
+function attachHandlers() {
+  document.querySelectorAll("[data-action]").forEach(el=>el.addEventListener("click",handleAction));
+  // 교육일지 라인/공정 변경
+  const ls=document.getElementById("lineSelect");
+  if(ls) ls.addEventListener("change",e=>{state.currentLog.line=e.target.value;state.currentLog.processId=null;state.currentLog.content="";render();});
+  const ps=document.getElementById("processSelect");
+  if(ps) ps.addEventListener("change",e=>{
+    const id=parseInt(e.target.value);const tpl=findProcess(id);
+    if(tpl){state.currentLog.processId=id;state.currentLog.courseName=tpl.name;
+      if(tpl.content&&confirm("교육 내용을 불러오시겠습니까?"))state.currentLog.content=tpl.content;}render();
+  });
+  const is=document.getElementById("instructorSelect");
+  if(is) is.addEventListener("change",e=>{
+    const inst=state.settings.instructors.find(i=>i.name===e.target.value);
+    if(inst){state.currentLog.instructorName=inst.name;state.currentLog.instructorPosition=inst.position;state.currentLog.instructorDept=inst.dept;}
+  });
+  // 피교육자 체크박스
+  document.querySelectorAll(".trainee-cb").forEach(cb=>cb.addEventListener("change",()=>{
+    state.currentLog.trainees=[...document.querySelectorAll(".trainee-cb:checked")].map(c=>c.value);
+  }));
+  // 스킬평가 폼
+  const el=document.getElementById("evalLine");
+  if(el) el.addEventListener("change",e=>{
+    state.currentEval.line=e.target.value;
+    state.currentEval.processId=null;
+    // 라인 부서와 현재 선택된 피교육자 부서가 다르면 초기화
+    const ld = deptOfLine(e.target.value);
+    if(ld && state.currentEval.traineeName){
+      const t = state.settings.trainees.find(x=>x.name===state.currentEval.traineeName);
+      if(t && t.dept!==ld) state.currentEval.traineeName="";
+    }
+    render();
+  });
+  const ep=document.getElementById("evalProcess");
+  if(ep) ep.addEventListener("change",e=>{state.currentEval.processId=parseInt(e.target.value);});
+  const et=document.getElementById("evalTrainee");
+  if(et) et.addEventListener("change",e=>{state.currentEval.traineeName=e.target.value;});
+  const ee=document.getElementById("evalEvaluator");
+  if(ee) ee.addEventListener("change",e=>{state.currentEval.evaluatorName=e.target.value;});
+  // 스킬평가 점수 실시간 합계
+  document.querySelectorAll(".eval-score").forEach(sel=>sel.addEventListener("input",e=>{
+    const idx=parseInt(e.target.dataset.idx);
+    let val=parseInt(e.target.value)||0;
+    if(val<0)val=0;if(val>10)val=10;e.target.value=val;
+    state.currentEval.scores[idx]=val;
+    const total=state.currentEval.scores.reduce((a,b)=>a+b,0);
+    const tel=document.getElementById("evalTotal");if(tel)tel.textContent=total;
+    let lv=0;if(total>=81)lv=4;else if(total>=61)lv=3;else if(total>=41)lv=2;else if(total>=21)lv=1;
+    const lel=document.getElementById("evalLevel");if(lel)lel.textContent=total+'점 → 레벨 '+lv;
+  }));
+  // 스킬맵 라인 필터
+  const skLine=document.getElementById("skillLineFilter");
+  if(skLine) skLine.addEventListener("change",e=>{state.skillFilterLine=e.target.value;render();});
+
+  // ===== 설정 관련 이벤트 리스너 =====
+  document.querySelectorAll(".dept-process-cb").forEach(cb => {
+    cb.addEventListener("change", e => {
+      const didx = parseInt(e.target.dataset.didx);
+      const pid = parseInt(e.target.dataset.pid);
+      const dept = state.settings.departments[didx];
+      if (!dept.requiredProcessIds) dept.requiredProcessIds = [];
+      if (e.target.checked) {
+        if (!dept.requiredProcessIds.includes(pid)) dept.requiredProcessIds.push(pid);
+      } else {
+        dept.requiredProcessIds = dept.requiredProcessIds.filter(x=>x!==pid);
+      }
+      saveSettings(state.settings);
+      render();
+    });
+  });
+
+  // 부서장 선택
+  document.querySelectorAll(".dept-manager-select").forEach(sel => {
+    sel.addEventListener("change", e => {
+      const didx = parseInt(e.target.dataset.didx);
+      state.settings.departments[didx].manager = e.target.value;
+      saveSettings(state.settings);
+    });
+  });
+
+  // 강사 - 부서장 여부 체크박스
+  document.querySelectorAll(".instructor-mgr-cb").forEach(cb => {
+    cb.addEventListener("change", e => {
+      const i = parseInt(e.target.dataset.idx);
+      state.settings.instructors[i].isManager = e.target.checked;
+      saveSettings(state.settings);
+    });
+  });
+
+  document.querySelectorAll(".instructor-rev-cb").forEach(cb => {
+    cb.addEventListener("change", e => {
+      const i = parseInt(e.target.dataset.idx);
+      state.settings.instructors[i].isReviewer = e.target.checked;
+      saveSettings(state.settings);
+    });
+  });
+
+  // 부서명 편집
+  document.querySelectorAll(".dept-name-input").forEach(inp => {
+    inp.addEventListener("change", e => {
+      const i = parseInt(e.target.dataset.idx);
+      state.settings.departments[i].name = e.target.value;
+      saveSettings(state.settings);
+    });
+  });
+
+  // 인원/강사 필드 편집 (이름, 직위, 부서, 입사일, 비밀번호 등)
+  document.querySelectorAll(".people-input").forEach(inp => {
+    inp.addEventListener("change", e => {
+      const k = e.target.dataset.key, i = parseInt(e.target.dataset.idx), f = e.target.dataset.field;
+      if (k && state.settings[k] && state.settings[k][i]) {
+        state.settings[k][i][f] = e.target.value;
+        saveSettings(state.settings);
+      }
+    });
+  });
+
+  // 간단 목록 편집 (라인, 평가방법)
+  document.querySelectorAll(".simple-input").forEach(inp => {
+    inp.addEventListener("change", e => {
+      const k = e.target.dataset.key, i = parseInt(e.target.dataset.idx);
+      if (k && state.settings[k]) {
+        state.settings[k][i] = e.target.value;
+        saveSettings(state.settings);
+      }
+    });
+  });
+
+  // 사진 업로드 (자동 리사이즈 + JPEG 압축)
+  document.querySelectorAll(".photo-upload").forEach(inp => {
+    inp.addEventListener("change", e => {
+      const file = e.target.files[0]; if (!file) return;
+      const idx = parseInt(e.target.dataset.idx);
+      const reader = new FileReader();
+      reader.onload = ev => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            // 증명사진 비율 3:4 (세로형) — 배지/스킬맵에서 위아래 안 잘리고 선명
+            const W = 240, H = 320;
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext("2d");
+            // 원본을 3:4로 중앙 크롭
+            const targetRatio = W / H;
+            let cw = img.width, ch = img.height, cx = 0, cy = 0;
+            if (img.width / img.height > targetRatio) {
+              // 원본이 더 가로로 넓음 → 좌우 크롭
+              cw = img.height * targetRatio;
+              cx = (img.width - cw) / 2;
+            } else {
+              // 원본이 더 세로로 김 → 위아래 크롭
+              ch = img.width / targetRatio;
+              cy = (img.height - ch) / 2;
+            }
+            ctx.drawImage(img, cx, cy, cw, ch, 0, 0, W, H);
+            state.settings.trainees[idx].photo = canvas.toDataURL("image/jpeg", 0.85);
+            saveSettings(state.settings);
+            render();
+          };
+          img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  // 일괄 입력 엑셀 업로드
+  const uploadTraining = document.getElementById("uploadTrainingExcel");
+  if (uploadTraining) uploadTraining.addEventListener("change", e => {
+    const f = e.target.files[0]; if (f) uploadTrainingExcel(f);
+  });
+  const uploadEval = document.getElementById("uploadEvalExcel");
+  if (uploadEval) uploadEval.addEventListener("change", e => {
+    const f = e.target.files[0]; if (f) uploadEvalExcel(f);
+  });
+
+  // 이메일 수신자 편집
+  document.querySelectorAll(".email-recipient-input").forEach(inp => {
+    inp.addEventListener("change", e => {
+      const i = parseInt(e.target.dataset.idx);
+      if (!state.settings.emailRecipients) state.settings.emailRecipients = [];
+      state.settings.emailRecipients[i] = e.target.value.trim();
+      saveSettings(state.settings);
+    });
+  });
+
+  // 계획 일정 입력 (date input)
+  document.querySelectorAll(".plan-date-input").forEach(inp => {
+    inp.addEventListener("change", e => {
+      const action = e.target.dataset.action;
+      const trainee = e.target.dataset.trainee;
+      const pid = parseInt(e.target.dataset.pid);
+      const date = e.target.value;
+      if (!date) return;
+      if (action === "addPlan") {
+        state.plans.push({ traineeName: trainee, processId: pid, plannedDate: date, status: "planned" });
+      } else if (action === "updatePlan" || action === "updatePlanFromSchedule") {
+        const plan = state.plans.find(p => p.traineeName===trainee && p.processId===pid);
+        if (plan) plan.plannedDate = date;
+      }
+      savePlans(state.plans);
+      render();
+    });
+  });
+
+  const imp = document.getElementById("importSettings");
+  if (imp) imp.addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      try { state.settings = JSON.parse(ev.target.result); saveSettings(state.settings); render(); alert("설정 가져오기 완료"); }
+      catch(err) { alert("파일 오류"); }
+    };
+    rd.readAsText(f);
+  });
+
+  // 전체 백업 복원
+  const impBackup = document.getElementById("importFullBackup");
+  if (impBackup) impBackup.addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = ev => {
+      try {
+        const backup = JSON.parse(ev.target.result);
+        if (!backup.settings && !backup.logs) { alert("유효한 백업 파일이 아닙니다."); return; }
+        if (!confirm(`백업 복원 (${backup.exportDate||'날짜 미상'})\n\n현재 데이터가 모두 덮어쓰여집니다. 계속하시겠습니까?`)) return;
+        if (backup.settings) { state.settings = backup.settings; localStorage.setItem(SETTINGS_KEY, JSON.stringify(backup.settings)); }
+        if (backup.logs) { state.logs = backup.logs; localStorage.setItem(LOGS_KEY, JSON.stringify(backup.logs)); }
+        if (backup.plans) { state.plans = backup.plans; localStorage.setItem(PLANS_KEY, JSON.stringify(backup.plans)); }
+        syncToGoogle("all"); // 구글에도 업로드
+        render();
+        alert("✅ 백업 복원 완료!");
+      } catch(err) { alert("파일 오류: " + err.message); }
+    };
+    rd.readAsText(f);
+  });
+}
+
+function handleAction(e) {
+  const btn=e.target.closest("[data-action]");if(!btn)return;
+  const action=btn.dataset.action, id=parseInt(btn.dataset.id), idx=parseInt(btn.dataset.idx), key=btn.dataset.key;
+  const rawId=btn.dataset.id;  // 소수점 포함 id(일괄입력)용 원본 문자열
+
+  switch(action) {
+    case "goStats": state.view="stats";state.selectedTrainee=null;render();break;
+    case "goSkill": state.view="skill";render();break;
+    case "goSchedule": state.view="schedule";render();break;
+    case "goList": state.view="list";state.logs=loadLogs();render();break;
+    case "goEvalList": state.view="evalList";render();break;
+    case "goApprovals": state.view="approvals";render();break;
+    case "goSettings":
+      if(!state.settingsUnlocked){const pw=prompt("관리자 비밀번호:");if(pw!==ADMIN_PASSWORD){alert("비밀번호 불일치");return;}state.settingsUnlocked=true;}
+      state.view="settings";render();break;
+    case "lockSettings": state.settingsUnlocked=false;state.view="stats";render();break;
+    case "setStatsDept": state.statsFilterDept=btn.dataset.dept;state.selectedTrainee=null;render();break;
+    case "setSkillDept": state.skillFilterDept=btn.dataset.dept;state.skillFilterLine="";render();break;
+    case "setScheduleDept": state.scheduleFilterDept=btn.dataset.dept;render();break;
+    case "schFilter": state.scheduleFilter=btn.dataset.mode;render();break;
+    case "selectTrainee": state.selectedTrainee=btn.dataset.name;render();break;
+    case "clearTrainee": state.selectedTrainee=null;render();break;
+
+    // 교육일지
+    case "new": state.currentLog=newLog();state.view="edit";render();break;
+    case "startLogFromPlan": {
+      const tn=btn.dataset.trainee,pid=parseInt(btn.dataset.pid),proc=findProcess(pid);
+      if(!proc){alert("공정 없음");return;}
+      const log=newLog();log.processId=pid;log.courseName=proc.name;log.line=proc.line;log.content=proc.content||"";log.trainees=[tn];
+      const t=state.settings.trainees.find(x=>x.name===tn);
+      if(t){const inst=state.settings.instructors.find(i=>i.dept===t.dept);if(inst){log.instructorName=inst.name;log.instructorPosition=inst.position;log.instructorDept=inst.dept;}}
+      const plan=state.plans.find(p=>p.traineeName===tn&&p.processId===pid);
+      if(plan){log.startDate=plan.plannedDate;log.endDate=plan.plannedDate;}
+      state.currentLog=log;state.view="edit";render();break;
+    }
+    case "edit": {
+      const log=state.logs.find(l=>String(l.id)===rawId);if(log){state.currentLog=JSON.parse(JSON.stringify(log));state.view="edit";render();}break;
+    }
+    case "print": {
+      const log=state.logs.find(l=>String(l.id)===rawId);if(log){state.currentLog=log;state.view="print";render();}break;
+    }
+    case "save": {
+      const log=state.currentLog;
+      ["startDate","endDate","evalMethod","content","instructorEval","opinion"].forEach(f=>{const el=document.getElementById(f);if(el)log[f]=el.value;});
+      log.hours=parseFloat(document.getElementById("hours").value)||0;
+      log.line=document.getElementById("lineSelect").value;
+      const pid=document.getElementById("processSelect").value;log.processId=pid?parseInt(pid):null;
+      log.instructorName=document.getElementById("instructorSelect").value||log.instructorName;
+      const tpl=findProcess(log.processId);if(tpl)log.courseName=tpl.name;
+      LOG_EVAL_ITEMS.forEach((_,i)=>{const el=document.getElementById("score"+i);if(el)log.scores[i]=parseInt(el.value);});
+      const mgrEl=document.getElementById("managerSelect");const mgr=mgrEl?mgrEl.value:"";
+      const revEl=document.getElementById("reviewerSelect");const rev=revEl?revEl.value:"";
+      if(!log.approvers)log.approvers={instructor:{name:"",approved:false,approvedAt:""},reviewer:{name:"",approved:false,approvedAt:""},manager:{name:"",approved:false,approvedAt:""}};
+      if(!log.approvers.reviewer)log.approvers.reviewer={name:"",approved:false,approvedAt:""};
+      if(log.approvers.instructor.name!==log.instructorName)log.approvers.instructor={name:log.instructorName,approved:false,approvedAt:""};
+      if(log.approvers.reviewer.name!==rev)log.approvers.reviewer={name:rev,approved:false,approvedAt:""};
+      if(log.approvers.manager.name!==mgr)log.approvers.manager={name:mgr,approved:false,approvedAt:""};
+      const i=state.logs.findIndex(l=>l.id===log.id);if(i>=0)state.logs[i]=log;else state.logs.push(log);
+      saveLogs(state.logs);
+      // 공정교육 완료 → 각 피교육자에 대해 6개월 뒤 스킬평가 일정 자동 생성
+      if (log.processId && log.trainees) {
+        log.trainees.forEach(tn => generateSkillEvalSchedule(tn, log.processId, log.endDate || log.startDate));
+      }
+      alert("저장 완료 (스킬평가 일정이 6개월 후로 자동 생성됩니다)");state.view="list";render();break;
+    }
+    case "delLog": if(confirm("삭제?")){state.logs=state.logs.filter(l=>String(l.id)!==rawId);saveLogs(state.logs);render();}break;
+
+    case "delLogFromDetail": {
+      const tn = btn.dataset.trainee;
+      const log = state.logs.find(l=>String(l.id)===rawId);
+      if(!log){alert("기록을 찾을 수 없습니다.");break;}
+      const pName = (findProcess(log.processId)||{}).name || log.courseName || '';
+      if(!confirm(`${tn} 님의 '${pName}' 공정교육 이수 기록을 삭제하시겠습니까?`))break;
+      // 여러 명이 함께 있는 교육일지면 이 인원만 제거, 혼자면 로그 삭제
+      if((log.trainees||[]).length>1){
+        log.trainees = log.trainees.filter(n=>n!==tn);
+      } else {
+        state.logs = state.logs.filter(l=>String(l.id)!==rawId);
+      }
+      saveLogs(state.logs);
+      render();
+      break;
+    }
+    case "delEvalFromDetail": {
+      const tn = btn.dataset.trainee;
+      const pid = parseInt(btn.dataset.pid);
+      const pName = (findProcess(pid)||{}).name || '';
+      const cnt = state.evals.filter(e=>e.traineeName===tn&&e.processId===pid).length;
+      if(cnt===0){alert("삭제할 평가가 없습니다.");break;}
+      if(!confirm(`${tn} 님의 '${pName}' 스킬평가 ${cnt}건을 모두 삭제하시겠습니까?`))break;
+      state.evals = state.evals.filter(e=>!(e.traineeName===tn&&e.processId===pid));
+      saveEvals(state.evals);
+      render();
+      break;
+    }
+    case "planToUnplanned": {
+      // 이 인원+공정의 교육 계획을 제거 → 미계획으로
+      const tn = btn.dataset.trainee, pid = parseInt(btn.dataset.pid);
+      const pName = (findProcess(pid)||{}).name || '';
+      if(!confirm(`${tn} 님의 '${pName}' 일정을 미계획으로 변경합니다.\n(자동일정에서 제외됩니다) 계속할까요?`))break;
+      state.plans = state.plans.filter(p=>!(p.traineeName===tn && p.processId===pid && (p.type||"training")==="training"));
+      savePlans(state.plans);
+      render();
+      break;
+    }
+    case "planFromUnplanned": {
+      // 미계획 공정에 오늘 기준 계획 생성
+      const tn = btn.dataset.trainee, pid = parseInt(btn.dataset.pid);
+      const exists = state.plans.some(p=>p.traineeName===tn && p.processId===pid && (p.type||"training")==="training");
+      if(exists){alert("이미 계획이 있습니다.");break;}
+      state.plans.push({
+        id: Date.now()+Math.random(),
+        traineeName: tn, processId: pid,
+        plannedDate: new Date().toISOString().slice(0,10),
+        type: "training", status: "planned"
+      });
+      savePlans(state.plans);
+      render();
+      break;
+    }
+
+    // 스킬평가
+    case "newEval": state.currentEval=newEval();state.view="evalForm";render();break;
+    case "startEvalFor": {
+      const ev=newEval();ev.traineeName=btn.dataset.trainee;ev.processId=parseInt(btn.dataset.pid);
+      const proc=findProcess(ev.processId);if(proc){ev.line=proc.line;}
+      state.currentEval=ev;state.view="evalForm";render();break;
+    }
+    case "editEval": {
+      const ev=state.evals.find(e=>String(e.id)===rawId);if(ev){state.currentEval=JSON.parse(JSON.stringify(ev));state.view="evalForm";render();}break;
+    }
+    case "printEval": {
+      const ev=state.evals.find(e=>String(e.id)===rawId);if(ev){state.currentEval=ev;state.view="evalPrint";render();}break;
+    }
+    case "saveEval": {
+      const ev=state.currentEval;
+      ev.traineeName=document.getElementById("evalTrainee").value;
+      ev.line=document.getElementById("evalLine").value;
+      const epid=document.getElementById("evalProcess").value;ev.processId=epid?parseInt(epid):null;
+      ev.evaluatorName=document.getElementById("evalEvaluator").value;
+      ev.evalDate=document.getElementById("evalDate").value;
+      ev.period=document.getElementById("evalPeriod").value;
+      document.querySelectorAll(".eval-score").forEach(s=>{ev.scores[parseInt(s.dataset.idx)]=parseInt(s.value)||0;});
+      document.querySelectorAll(".eval-content").forEach(s=>{ev.contents[parseInt(s.dataset.idx)]=s.value;});
+      document.querySelectorAll(".eval-remark").forEach(s=>{ev.remarks[parseInt(s.dataset.idx)]=s.value;});
+      ev.totalScore=ev.scores.reduce((a,b)=>a+b,0);
+      ev.level=0;if(ev.totalScore>=81)ev.level=4;else if(ev.totalScore>=61)ev.level=3;else if(ev.totalScore>=41)ev.level=2;else if(ev.totalScore>=21)ev.level=1;
+      // 평가 기준 항목 스냅샷 저장 (수정 전 기준이 보존됨)
+      if (!ev.criteria) ev.criteria = JSON.parse(JSON.stringify(getEvalCriteria(findProcess(ev.processId))));
+      const mgr=document.getElementById("evalManager");
+      const revE=document.getElementById("evalReviewer");
+      if(!ev.approvers)ev.approvers={instructor:{name:"",approved:false,approvedAt:""},reviewer:{name:"",approved:false,approvedAt:""},manager:{name:"",approved:false,approvedAt:""}};
+      if(!ev.approvers.reviewer)ev.approvers.reviewer={name:"",approved:false,approvedAt:""};
+      if(ev.approvers.instructor.name!==ev.evaluatorName)ev.approvers.instructor={name:ev.evaluatorName,approved:false,approvedAt:""};
+      const revName=revE?revE.value:"";if(ev.approvers.reviewer.name!==revName)ev.approvers.reviewer={name:revName,approved:false,approvedAt:""};
+      const mgrName=mgr?mgr.value:"";if(ev.approvers.manager.name!==mgrName)ev.approvers.manager={name:mgrName,approved:false,approvedAt:""};
+      const i=state.evals.findIndex(x=>x.id===ev.id);if(i>=0)state.evals[i]=ev;else state.evals.push(ev);
+      saveEvals(state.evals);
+      // 해당 스킬평가 일정을 완료 처리
+      const evalPlan = state.plans.find(p => p.traineeName === ev.traineeName && p.processId === ev.processId && p.type === "skillEval" && p.status === "planned");
+      if (evalPlan) { evalPlan.status = "completed"; savePlans(state.plans); }
+      alert("스킬 평가 저장 완료");state.view="evalList";render();break;
+    }
+    case "delEval": if(confirm("삭제?")){state.evals=state.evals.filter(e=>String(e.id)!==rawId);saveEvals(state.evals);render();}break;
+
+    case "addSkillUp": {
+      // 기존 인원+공정에 추가 스킬평가 생성
+      const ev = newEval();
+      ev.traineeName = btn.dataset.trainee;
+      ev.processId = parseInt(btn.dataset.pid);
+      ev.line = btn.dataset.line || "";
+      state.currentEval = ev;
+      state.view = "evalForm"; render();
+      break;
+    }
+    case "showEvalHistory": {
+      state.evalHistoryKey = `${btn.dataset.trainee}__${btn.dataset.pid}`;
+      state.view = "evalList";
+      render();
+      // 이력 패널로 스크롤
+      setTimeout(() => {
+        const panel = document.querySelector('.border-purple-600');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      break;
+    }
+    case "closeEvalHistory": {
+      state.evalHistoryKey = null;
+      render();
+      break;
+    }
+
+    // 결재
+    case "approveStep": {
+      const step=btn.dataset.step,type=btn.dataset.type;
+      let target;
+      if(type==="교육일지") target=state.logs.find(l=>l.id===id);
+      else target=state.evals.find(e=>e.id===id);
+      if(!target||!target.approvers)return;
+      if(!target.approvers.reviewer)target.approvers.reviewer={name:"",approved:false,approvedAt:""};
+      const approverName=step==="instructor"?target.approvers.instructor.name:step==="reviewer"?target.approvers.reviewer.name:target.approvers.manager.name;
+      const inst=state.settings.instructors.find(i=>i.name===approverName);
+      if(!inst||!inst.password){alert(approverName+" 님의 비밀번호가 설정되지 않았습니다.");return;}
+      const pwd=prompt(approverName+" 님의 결재 비밀번호:");if(pwd===null)return;
+      if(pwd!==inst.password){alert("비밀번호 불일치");return;}
+      const now=new Date().toISOString();
+      const instOk=target.approvers.instructor.approved;
+      const hasRev=!!(target.approvers.reviewer.name);
+      const revOk=!hasRev||target.approvers.reviewer.approved;
+      if(step==="instructor")target.approvers.instructor={name:approverName,approved:true,approvedAt:now};
+      else if(step==="reviewer"&&instOk)target.approvers.reviewer={name:approverName,approved:true,approvedAt:now};
+      else if(step==="manager"&&instOk&&revOk)target.approvers.manager={name:approverName,approved:true,approvedAt:now};
+      else{alert("승인 불가 (이전 단계 먼저 승인 필요)");return;}
+      if(type==="교육일지")saveLogs(state.logs);else saveEvals(state.evals);
+      render();break;
+    }
+
+    // 자동 일정
+    case "autoScheduleOne": {
+      const n=btn.dataset.name;const added=generateAutoSchedule(n);
+      alert(added>0?n+" 님의 "+added+"건 교육 일정이 생성되었습니다.":"추가할 일정이 없습니다.");
+      render();break;
+    }
+    case "autoScheduleAll": {
+      const dept=state.scheduleFilterDept;let total=0;
+      state.settings.trainees.filter(t=>t.dept===dept).forEach(t=>{total+=generateAutoSchedule(t.name);});
+      alert(dept+" 부서 "+total+"건 일정 생성 완료");render();break;
+    }
+
+    // 설정
+    case "tab": state.settingsTab = btn.dataset.tab; state.editingProcessIdx = -1; render(); break;
+    case "addDept": {
+      const name = prompt("부서명:"); if (!name) return;
+      if (!state.settings.departments) state.settings.departments = [];
+      state.settings.departments.push({ name, requiredProcessIds: [] });
+      saveSettings(state.settings); render();
+      break;
+    }
+    case "delDept":
+      if (confirm("부서를 삭제하시겠습니까?")) {
+        state.settings.departments.splice(idx,1);
+        saveSettings(state.settings); render();
+      }
+      break;
+
+    case "delPlan": {
+      const tr = btn.dataset.trainee, pid = parseInt(btn.dataset.pid);
+      state.plans = state.plans.filter(p => !(p.traineeName===tr && p.processId===pid));
+      savePlans(state.plans); render();
+      break;
+    }
+    case "tab": state.settingsTab = btn.dataset.tab; state.editingProcessIdx = -1; render(); break;
+
+    case "new":
+      state.currentLog = newLog();
+      state.view = "edit"; render(); break;
+
+    case "startLogFromPlan": {
+      const traineeName = btn.dataset.trainee;
+      const pid = parseInt(btn.dataset.pid);
+      const proc = findProcess(pid);
+      if (!proc) { alert("공정을 찾을 수 없습니다."); return; }
+
+      // 새 일지 생성 + 계획 정보 자동 채우기
+      const log = newLog();
+      log.processId = pid;
+      log.courseName = proc.name;
+      log.line = proc.line;
+      log.content = proc.content || "";
+      log.trainees = [traineeName];
+
+      // 강사: 해당 부서 첫 번째 강사 자동 선택
+      const trainee = state.settings.trainees.find(t => t.name === traineeName);
+      if (trainee) {
+        const inst = state.settings.instructors.find(i => i.dept === trainee.dept);
+        if (inst) {
+          log.instructorName = inst.name;
+          log.instructorPosition = inst.position;
+          log.instructorDept = inst.dept;
+        }
+      }
+
+      // 계획일이 있으면 그 날짜를 시작/종료일에 채움
+      const plan = state.plans.find(p => p.traineeName === traineeName && p.processId === pid);
+      if (plan && plan.plannedDate) {
+        log.startDate = plan.plannedDate;
+        log.endDate = plan.plannedDate;
+      }
+
+      state.currentLog = log;
+      state.view = "edit"; render();
+      break;
+    }
+
+    case "edit":
+      state.currentLog = JSON.parse(JSON.stringify(state.logs.find(l=>l.id===id)));
+      if (typeof state.currentLog.trainees === "string") state.currentLog.trainees = state.currentLog.trainees.split(",").map(s=>s.trim()).filter(Boolean);
+      state.view = "edit"; render(); break;
+    case "delete":
+      if (confirm("삭제하시겠습니까?")) { state.logs = state.logs.filter(l=>l.id!==id); saveLogs(state.logs); render(); }
+      break;
+
+    case "save": {
+      const log = state.currentLog;
+      ["startDate","endDate","evalMethod","content","instructorEval","opinion"].forEach(f => {
+        const el = document.getElementById(f); if (el) log[f] = el.value;
+      });
+      log.hours = parseFloat(document.getElementById("hours").value) || 0;
+      log.line = document.getElementById("lineSelect").value;
+      const pid = document.getElementById("processSelect").value;
+      log.processId = pid ? parseInt(pid) : null;
+      log.instructorName = document.getElementById("instructorSelect").value || log.instructorName;
+      const tpl = findProcess(log.processId);
+      if (tpl) log.courseName = tpl.name;
+
+      // 부서장 선택
+      const mgrEl = document.getElementById("managerSelect");
+      const managerName = mgrEl ? mgrEl.value : "";
+
+      // 결재 라인 (담당자 = 강사 자동, 부서장 선택)
+      if (!log.approvers) log.approvers = { instructor:{name:"",approved:false,approvedAt:""}, manager:{name:"",approved:false,approvedAt:""} };
+      if (log.approvers.instructor.name !== log.instructorName) {
+        log.approvers.instructor = { name: log.instructorName, approved: false, approvedAt: "" };
+      }
+      if (log.approvers.manager.name !== managerName) {
+        log.approvers.manager = { name: managerName, approved: false, approvedAt: "" };
+      }
+
+      const i = state.logs.findIndex(l=>l.id===log.id);
+      if (i>=0) state.logs[i] = log; else state.logs.push(log);
+      saveLogs(state.logs);
+      alert("저장되었습니다. 결재함에서 승인을 진행하세요.");
+      state.view = "list"; render();
+      break;
+    }
+
+    case "goApprovals": state.view = "approvals"; render(); break;
+    case "manualSync": {
+      syncFromGoogle().then(updated => {
+        if (updated) { render(); alert("최신 데이터를 불러왔습니다."); }
+        else if (!syncStatus.error) alert("변경 없음");
+        else alert("동기화 오류: " + syncStatus.error);
+      });
+      break;
+    }
+
+    case "printSkillMap": {
+      document.body.classList.add("print-skillmap");
+      const tw = document.querySelector(".skillmap-print-area .bg-white");
+      if (tw) { tw.style.maxHeight="none"; tw.style.overflow="visible"; }
+      // QR 코드 생성 (중복 방지)
+      const qrEl = document.getElementById("skillmapQR");
+      if (qrEl) {
+        qrEl.innerHTML = "";
+        if (typeof QRCode !== "undefined") {
+          try { new QRCode(qrEl, { text:"https://eatonmfgkorea-maker.github.io/Training/", width:58, height:58, correctLevel:QRCode.CorrectLevel.M }); } catch(e){}
+        }
+      }
+      const ps = document.createElement("style");
+      ps.id = "skillmap-page-style";
+      // A3 세로(420mm) - 여백/제목/헤더 = 데이터영역, 공정 수로 나눠 각 행 높이 직접 지정 → 한 페이지 꽉
+      const procCount = document.querySelectorAll(".skillmap-print-area .data-row").length || 1;
+      const dataAreaMM = 420 - 10 - 22 - 32;
+      let rowH = dataAreaMM / procCount;
+      if (rowH > 12) rowH = 12;
+      if (rowH < 4) rowH = 4;
+      ps.textContent = "@page{size:A3 portrait;margin:5mm}\n@media print{.skillmap-print-area .data-row td{height:" + rowH.toFixed(2) + "mm!important;}}";
+      document.head.appendChild(ps);
+
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("print-skillmap");
+          if (tw) { tw.style.maxHeight=""; tw.style.overflow=""; }
+          if (qrEl) qrEl.innerHTML = "";
+          const s = document.getElementById("skillmap-page-style");
+          if (s) s.remove();
+        }, 500);
+      }, 350);
+      break;
+    }
+
+    case "export": exportCSV(); break;
+
+    case "addProcess":
+      if (state.settings.lines.length === 0) { alert("먼저 '라인 관리'에서 라인을 등록하세요."); return; }
+      state.editingProcessIdx = state.settings.processes.length; render(); break;
+    case "editProcess":
+      state.editingProcessIdx = idx; render(); break;
+    case "cancelProcess":
+      state.editingProcessIdx = -1; render(); break;
+    case "saveProcess": {
+      const existing = state.editingProcessIdx < state.settings.processes.length ? state.settings.processes[state.editingProcessIdx] : null;
+      const p = {
+        id: existing ? existing.id : nextProcessId(),
+        line: document.getElementById("p_line").value,
+        name: document.getElementById("p_name").value.trim(),
+        content: document.getElementById("p_content").value
+      };
+      if (!p.name) { alert("공정명은 필수입니다."); return; }
+      if (existing) state.settings.processes[state.editingProcessIdx] = p;
+      else state.settings.processes.push(p);
+      saveSettings(state.settings);
+      state.editingProcessIdx = -1; render();
+      break;
+    }
+    case "delProcess": {
+      const proc = state.settings.processes[idx];
+      if (!proc) break;
+      // 영향 분석
+      const affectedDepts = (state.settings.departments||[]).filter(d => (d.requiredProcessIds||[]).includes(proc.id));
+      const affectedLogs = state.logs.filter(l => l.processId === proc.id);
+      const affectedPlans = state.plans.filter(p => p.processId === proc.id);
+      let msg = `'${proc.name}' 공정을 삭제하시겠습니까?`;
+      if (affectedDepts.length || affectedLogs.length || affectedPlans.length) {
+        msg += "\n\n다음 항목에 영향이 있습니다:";
+        if (affectedDepts.length) msg += `\n· ${affectedDepts.length}개 부서의 필수 교육 목록에서 제거됨`;
+        if (affectedLogs.length) msg += `\n· ${affectedLogs.length}건의 교육일지가 공정 정보를 잃음 (일지는 유지)`;
+        if (affectedPlans.length) msg += `\n· ${affectedPlans.length}건의 교육 계획이 함께 삭제됨`;
+      }
+      if (!confirm(msg)) return;
+
+      state.settings.processes.splice(idx,1);
+      // 부서 필수 목록에서 제거
+      (state.settings.departments||[]).forEach(d => {
+        if (d.requiredProcessIds) d.requiredProcessIds = d.requiredProcessIds.filter(id => id !== proc.id);
+      });
+      // 계획에서도 제거
+      state.plans = state.plans.filter(p => p.processId !== proc.id);
+      savePlans(state.plans);
+      saveSettings(state.settings); render();
+      break;
+    }
+
+    case "addPerson": {
+      const name = prompt("이름:"); if (!name) return;
+      const obj = key==="instructors" ? {name, position:"리더", dept:"TCP"} : {name, dept:"TCP", joinDate:"", photo:""};
+      state.settings[key].push(obj); saveSettings(state.settings); render();
+      break;
+    }
+    case "removePhoto": {
+      state.settings.trainees[idx].photo = "";
+      saveSettings(state.settings); render();
+      break;
+    }
+    case "delPerson": {
+      const person = state.settings[key][idx];
+      if (!person) break;
+      let msg = `'${person.name}' 님을 삭제하시겠습니까?`;
+      if (key === "trainees") {
+        const inLogs = state.logs.filter(l => (l.trainees||[]).includes(person.name)).length;
+        const inPlans = state.plans.filter(p => p.traineeName === person.name).length;
+        if (inLogs || inPlans) {
+          msg += "\n\n주의: 다음 데이터에 영향이 있습니다:";
+          if (inLogs) msg += `\n· ${inLogs}건의 교육일지에 이름이 남아있음 (일지는 유지)`;
+          if (inPlans) msg += `\n· ${inPlans}건의 교육 계획이 함께 삭제됨`;
+        }
+      }
+      if (!confirm(msg)) return;
+      state.settings[key].splice(idx,1);
+      if (key === "trainees") {
+        // 계획에서 제거
+        state.plans = state.plans.filter(p => p.traineeName !== person.name);
+        savePlans(state.plans);
+      }
+      saveSettings(state.settings); render();
+      break;
+    }
+
+    case "addSimple": {
+      const v = prompt("추가할 항목:"); if (!v) return;
+      state.settings[key].push(v); saveSettings(state.settings); render();
+      break;
+    }
+    case "delSimple": {
+      // 라인 삭제 시 → 그 라인의 공정도 함께 처리
+      if (key === "lines") {
+        const lineName = state.settings.lines[idx];
+        const linkedProcesses = state.settings.processes.filter(p => p.line === lineName);
+        if (linkedProcesses.length > 0) {
+          if (!confirm(`'${lineName}' 라인에 ${linkedProcesses.length}개 공정이 등록되어 있습니다.\n\n[확인]을 누르면 라인과 함께 그 공정들도 모두 삭제됩니다.\n[취소]를 누르면 아무것도 삭제되지 않습니다.`)) return;
+          // 공정 ID 수집 후 부서 필수 목록에서도 제거
+          const removedIds = linkedProcesses.map(p=>p.id);
+          state.settings.processes = state.settings.processes.filter(p => p.line !== lineName);
+          (state.settings.departments||[]).forEach(d => {
+            if (d.requiredProcessIds) d.requiredProcessIds = d.requiredProcessIds.filter(id => !removedIds.includes(id));
+          });
+        } else {
+          if (!confirm(`'${lineName}' 라인을 삭제하시겠습니까?`)) return;
+        }
+        state.settings.lines.splice(idx,1);
+        saveSettings(state.settings); render();
+      } else {
+        if (confirm("삭제하시겠습니까?")) { state.settings[key].splice(idx,1); saveSettings(state.settings); render(); }
+      }
+      break;
+    }
+
+    case "exportSettings": {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(state.settings,null,2)], {type:"application/json"}));
+      a.download = `교육일지_설정_${new Date().toISOString().slice(0,10)}.json`;
+      a.click(); break;
+    }
+
+    case "saveEvalCriteria": {
+      const criteria = getEvalCriteria();
+      document.querySelectorAll(".ec-title").forEach(el => { criteria[parseInt(el.dataset.idx)].title = el.value; });
+      document.querySelectorAll(".ec-lv0").forEach(el => { criteria[parseInt(el.dataset.idx)].lv0 = el.value; });
+      document.querySelectorAll(".ec-lv5").forEach(el => { criteria[parseInt(el.dataset.idx)].lv5 = el.value; });
+      document.querySelectorAll(".ec-lv10").forEach(el => { criteria[parseInt(el.dataset.idx)].lv10 = el.value; });
+      state.settings.evalCriteria = criteria;
+      saveSettings(state.settings);
+      alert("스킬 평가 항목이 저장되었습니다.\n기존 평가는 변경되지 않으며, 새로 작성하는 평가부터 적용됩니다.");
+      render(); break;
+    }
+    case "resetEvalCriteria":
+      if(confirm("스킬 평가 항목을 기본값으로 되돌리시겠습니까?")){
+        state.settings.evalCriteria=JSON.parse(JSON.stringify(DEFAULT_EVAL_CRITERIA));
+        saveSettings(state.settings);render();
+      }break;
+
+    case "downloadTrainingTemplate": downloadTrainingTemplate(); break;
+    case "downloadEvalTemplate": downloadEvalTemplate(); break;
+
+    case "bulkDeleteLogs":
+    case "bulkDeleteEvals":
+    case "bulkDeleteBoth": {
+      const selEl = document.getElementById("bulkDelDept");
+      const dept = selEl ? selEl.value : "__ALL__";
+      const deptLabel = dept === "__ALL__" ? "전체 부서" : dept;
+      // 해당 부서 인원 이름 집합
+      const deptNames = new Set(
+        state.settings.trainees.filter(t => dept === "__ALL__" || t.dept === dept).map(t => t.name)
+      );
+      const delLogs = (action === "bulkDeleteLogs" || action === "bulkDeleteBoth");
+      const delEvals = (action === "bulkDeleteEvals" || action === "bulkDeleteBoth");
+
+      // 삭제 대상 건수 계산
+      let logCnt = 0, evalCnt = 0;
+      if (delLogs) {
+        state.logs.forEach(l => {
+          const inDept = (l.trainees||[]).filter(n => deptNames.has(n));
+          if (inDept.length > 0) logCnt += inDept.length;
+        });
+      }
+      if (delEvals) {
+        evalCnt = state.evals.filter(e => deptNames.has(e.traineeName)).length;
+      }
+
+      if (logCnt === 0 && evalCnt === 0) { alert(`${deptLabel}에 삭제할 기록이 없습니다.`); break; }
+
+      const parts = [];
+      if (delLogs) parts.push(`공정교육 ${logCnt}건`);
+      if (delEvals) parts.push(`스킬평가 ${evalCnt}건`);
+      if (!confirm(`[${deptLabel}]\n${parts.join(", ")}을(를) 삭제합니다.\n\n인원·공정 설정은 유지되고 기록만 삭제됩니다.\n되돌릴 수 없습니다. 계속하시겠습니까?`)) break;
+      // 한 번 더 확인
+      if (!confirm(`정말 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.`)) break;
+
+      if (delLogs) {
+        // 교육일지에서 해당 부서 인원만 제거, 인원이 모두 빠지면 로그 삭제
+        state.logs = state.logs.filter(l => {
+          const remain = (l.trainees||[]).filter(n => !deptNames.has(n));
+          if (remain.length === 0) return false;  // 전원 삭제 대상 → 로그 제거
+          l.trainees = remain;
+          return true;
+        });
+        saveLogs(state.logs);
+      }
+      if (delEvals) {
+        state.evals = state.evals.filter(e => !deptNames.has(e.traineeName));
+        saveEvals(state.evals);
+      }
+      render();
+      alert(`✅ 삭제 완료\n${parts.join(", ")}이(가) 삭제되었습니다.`);
+      break;
+    }
+
+    case "addEmailRecipient": {
+      if (!state.settings.emailRecipients) state.settings.emailRecipients = [];
+      state.settings.emailRecipients.push("");
+      saveSettings(state.settings); render();
+      break;
+    }
+    case "delEmailRecipient": {
+      const i = parseInt(btn.dataset.idx);
+      state.settings.emailRecipients.splice(i, 1);
+      saveSettings(state.settings); render();
+      break;
+    }
+    case "sendTestEmail": {
+      const emailType = btn.dataset.type;
+      const recipients = state.settings.emailRecipients || [];
+      if (recipients.filter(e=>e.trim()).length === 0) {
+        alert("수신자를 먼저 등록하세요.");
+        break;
+      }
+      if (!confirm(`${emailType==='day1'?'매월 1일용':'매월 20일용'} 테스트 메일을 ${recipients.filter(e=>e.trim()).length}명에게 발송합니다.\n계속하시겠습니까?`)) break;
+
+      fetch(OLD_GAS_URL, {
+        method: "POST", mode: "no-cors",
+        headers: {"Content-Type":"text/plain"},
+        body: JSON.stringify({
+          type: "testEmail",
+          emailType: emailType,
+          recipients: recipients.filter(e=>e.trim()),
+          settings: state.settings,
+          logs: state.logs,
+          plans: state.plans
+        })
+      }).then(() => {
+        alert("✅ 메일 발송 요청 완료!\n(실제 메일 발송까지 1~2분 소요됩니다)\n받은편지함을 확인해주세요.");
+      }).catch(err => {
+        alert("❌ 메일 발송 실패: " + err.message);
+      });
+      break;
+    }
+
+    case "resetSettings":
+      if(confirm("초기화?")){state.settings=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));saveSettings(state.settings);render();}break;
+    case "exportFullBackup": {
+      const b={version:"v5",date:new Date().toISOString(),settings:state.settings,logs:state.logs,plans:state.plans,evals:state.evals};
+      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(b,null,2)],{type:"application/json"}));
+      a.download="MFG_교육관리_백업_"+new Date().toISOString().slice(0,10)+".json";a.click();break;
+    }
+    case "uploadAllToGoogle":
+      if(confirm("전체 업로드?")){syncToGoogle("all").then(()=>{alert(syncStatus.error?"오류: "+syncStatus.error:"업로드 완료!");render();});}break;
+    case "downloadAllFromGoogle":
+      if(confirm("서버에서 다운로드?")){syncFromGoogle().then(u=>{if(u){render();alert("다운로드 완료!");}else alert(syncStatus.error||"데이터 없음");});}break;
+    case "migrateFromGoogle": migrateFromGoogle(); break;
+    case "sbLogout": if(confirm("로그아웃 하시겠습니까?")) sbLogout(); break;
+    case "sbListUsers": sbListUsers(); break;
+    case "sbAddUser": sbAddUser(); break;
+    case "sbDelUser": sbDelUser(btn.dataset.email); break;
+  }
+}
+
+// ============ 시작 ============
+// 저장 진행 중 페이지 이탈 방지
+window.addEventListener("beforeunload", function(e){
+  if (_syncPending) {
+    e.preventDefault();
+    e.returnValue = "저장이 진행 중입니다. 잠시 후 나가주세요.";
+    return e.returnValue;
+  }
+});
+
+(async function(){
+  // 로그인 모듈 로드 대기
+  let tries=0; while(!window.supabase && tries<50){ await new Promise(r=>setTimeout(r,100)); tries++; }
+  const c = sbc();
+  if(!c){ showLogin("로그인 모듈을 불러오지 못했습니다. 새로고침 해주세요."); return; }
+  showGate("로그인 확인 중…");
+  try {
+    const { data:{ session } } = await c.auth.getSession();
+    if(session){ await afterLogin(session.user); }
+    else { showLogin(); }
+  } catch(err){ showLogin(); }
+})();
+</script>
+</body>
+</html>
