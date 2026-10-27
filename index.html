@@ -296,7 +296,15 @@ const SETTINGS_KEY = "tcp_training_settings_v5_SB";
 const PLANS_KEY = "tcp_training_plans_v5_SB";
 const EVALS_KEY = "tcp_skill_evals_v5_SB";
 const ADMIN_PASSWORD = "Eaton12!@";
-const APP_VERSION = "v1S (2026-10-27)";
+const APP_VERSION = "v2S (2026-10-27)";
+
+// 서버(Supabase)가 원본 저장소 — 큰 데이터는 localStorage에 쌓지 않음
+// (브라우저 용량 초과 방지 + 로그인 세션 토큰 저장 공간 확보)
+const _LS_BIG_KEYS = ["tcp_training_logs_v5_SB","tcp_training_settings_v5_SB","tcp_training_plans_v5_SB","tcp_skill_evals_v5_SB"];
+function lsSet(key, val){
+  if (_LS_BIG_KEYS.indexOf(key) >= 0) return;   // 서버에 저장되므로 localStorage 생략
+  try { localStorage.setItem(key, val); } catch(e) { /* 용량 초과 무시 */ }
+}
 
 // ============ 서버 설정 (변경 불필요 — 코드 고정) ============
 const SB_URL_DEFAULT = "https://tmbeaswlpvsyjehacgsa.supabase.co";
@@ -394,13 +402,13 @@ async function syncFromGoogle() {
     let updated = false;
     (data || []).forEach(r => {
       if (r.key === "settings" && r.data && typeof r.data === "object" && r.data.lines) {
-        state.settings = r.data; localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings)); updated = true;
+        state.settings = r.data; lsSet(SETTINGS_KEY, JSON.stringify(state.settings)); updated = true;
       } else if (r.key === "logs" && Array.isArray(r.data)) {
-        state.logs = r.data; localStorage.setItem(LOGS_KEY, JSON.stringify(state.logs)); updated = true;
+        state.logs = r.data; lsSet(LOGS_KEY, JSON.stringify(state.logs)); updated = true;
       } else if (r.key === "plans" && Array.isArray(r.data)) {
-        state.plans = r.data; localStorage.setItem(PLANS_KEY, JSON.stringify(state.plans)); updated = true;
+        state.plans = r.data; lsSet(PLANS_KEY, JSON.stringify(state.plans)); updated = true;
       } else if (r.key === "evals" && Array.isArray(r.data)) {
-        state.evals = r.data; localStorage.setItem(EVALS_KEY, JSON.stringify(state.evals)); updated = true;
+        state.evals = r.data; lsSet(EVALS_KEY, JSON.stringify(state.evals)); updated = true;
       }
     });
     syncStatus.last = new Date().toLocaleString("ko-KR"); syncStatus.error = "";
@@ -422,10 +430,10 @@ async function migrateFromGoogle() {
     if (Array.isArray(result.logs)) state.logs = result.logs;
     if (Array.isArray(result.plans)) state.plans = result.plans;
     if (Array.isArray(result.evals)) state.evals = result.evals;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
-    localStorage.setItem(LOGS_KEY, JSON.stringify(state.logs));
-    localStorage.setItem(PLANS_KEY, JSON.stringify(state.plans));
-    localStorage.setItem(EVALS_KEY, JSON.stringify(state.evals));
+    lsSet(SETTINGS_KEY, JSON.stringify(state.settings));
+    lsSet(LOGS_KEY, JSON.stringify(state.logs));
+    lsSet(PLANS_KEY, JSON.stringify(state.plans));
+    lsSet(EVALS_KEY, JSON.stringify(state.evals));
     await syncToGoogle("all");
     render();
     alert("✅ 이관 완료\n교육일지 " + (state.logs||[]).length + "건, 스킬평가 " + (state.evals||[]).length + "건을 가져왔습니다.");
@@ -480,19 +488,25 @@ async function sbLogin(email, password){
 }
 async function afterLogin(user){
   const c = sbc();
+  // 1) 인증·승인 확인 (실패 시에만 로그인 화면)
   try {
     sbUser = user || (await c.auth.getUser()).data.user;
     const { data: role } = await c.rpc("my_role");
     if(!role){ await c.auth.signOut(); sbUser=null; sbRole=null; showLogin("승인되지 않은 계정입니다. 관리자에게 문의하세요."); return; }
     sbRole = role;
-    showGate("데이터 불러오는 중…");
-    sbReady = true;
+  } catch(err){
+    showLogin("로그인 확인 중 오류: " + (err.message||err)); return;
+  }
+  // 2) 인증 성공 — 이후 데이터 오류가 나도 로그인 화면으로 되돌아가지 않음
+  sbReady = true;
+  showGate("데이터 불러오는 중…");
+  try {
     const u = await syncFromGoogle();
-    render();
-    sbHideOverlay();
+    render(); sbHideOverlay();
     if(!syncStatus.error && !u && state.settings && state.settings.lines && state.settings.lines.length>0){ syncToGoogle("all"); }
   } catch(err){
-    showLogin("로그인 처리 중 오류: " + (err.message||err));
+    syncStatus.error = err.message || String(err);
+    render(); sbHideOverlay();
   }
 }
 async function sbLogout(){
@@ -512,11 +526,11 @@ function updateSyncBadge() {
 
 // ============ 로드/세이브 ============
 function loadLogs() { try { return JSON.parse(localStorage.getItem(LOGS_KEY)||"[]"); } catch(e) { return []; } }
-function saveLogs(l) { localStorage.setItem(LOGS_KEY, JSON.stringify(l)); syncToGoogle("logs"); }
+function saveLogs(l) { lsSet(LOGS_KEY, JSON.stringify(l)); syncToGoogle("logs"); }
 function loadPlans() { try { return JSON.parse(localStorage.getItem(PLANS_KEY)||"[]"); } catch(e) { return []; } }
-function savePlans(p) { localStorage.setItem(PLANS_KEY, JSON.stringify(p)); syncToGoogle("plans"); }
+function savePlans(p) { lsSet(PLANS_KEY, JSON.stringify(p)); syncToGoogle("plans"); }
 function loadEvals() { try { return JSON.parse(localStorage.getItem(EVALS_KEY)||"[]"); } catch(e) { return []; } }
-function saveEvals(e) { localStorage.setItem(EVALS_KEY, JSON.stringify(e)); syncToGoogle("evals"); }
+function saveEvals(e) { lsSet(EVALS_KEY, JSON.stringify(e)); syncToGoogle("evals"); }
 
 function buildInitialProcesses() { return COMPANY_PROCESSES.map((p,i)=>({id:i+1,line:p.line,name:p.name,content:""})); }
 function buildDeptRequired(d) { return COMPANY_PROCESSES.map((p,i)=>p.dept===d?i+1:null).filter(v=>v!==null); }
@@ -547,7 +561,7 @@ function loadSettings() {
     return s;
   } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); }
 }
-function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); syncToGoogle("settings"); }
+function saveSettings(s) { lsSet(SETTINGS_KEY, JSON.stringify(s)); syncToGoogle("settings"); }
 
 // ============ State ============
 let state = {
@@ -2571,9 +2585,9 @@ function attachHandlers() {
         const backup = JSON.parse(ev.target.result);
         if (!backup.settings && !backup.logs) { alert("유효한 백업 파일이 아닙니다."); return; }
         if (!confirm(`백업 복원 (${backup.exportDate||'날짜 미상'})\n\n현재 데이터가 모두 덮어쓰여집니다. 계속하시겠습니까?`)) return;
-        if (backup.settings) { state.settings = backup.settings; localStorage.setItem(SETTINGS_KEY, JSON.stringify(backup.settings)); }
-        if (backup.logs) { state.logs = backup.logs; localStorage.setItem(LOGS_KEY, JSON.stringify(backup.logs)); }
-        if (backup.plans) { state.plans = backup.plans; localStorage.setItem(PLANS_KEY, JSON.stringify(backup.plans)); }
+        if (backup.settings) { state.settings = backup.settings; lsSet(SETTINGS_KEY, JSON.stringify(backup.settings)); }
+        if (backup.logs) { state.logs = backup.logs; lsSet(LOGS_KEY, JSON.stringify(backup.logs)); }
+        if (backup.plans) { state.plans = backup.plans; lsSet(PLANS_KEY, JSON.stringify(backup.plans)); }
         syncToGoogle("all"); // 구글에도 업로드
         render();
         alert("✅ 백업 복원 완료!");
@@ -2592,7 +2606,7 @@ function handleAction(e) {
     case "goStats": state.view="stats";state.selectedTrainee=null;render();break;
     case "goSkill": state.view="skill";render();break;
     case "goSchedule": state.view="schedule";render();break;
-    case "goList": state.view="list";state.logs=loadLogs();render();break;
+    case "goList": state.view="list";render();break;
     case "goEvalList": state.view="evalList";render();break;
     case "goApprovals": state.view="approvals";render();break;
     case "goSettings":
