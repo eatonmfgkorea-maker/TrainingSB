@@ -296,7 +296,7 @@ const SETTINGS_KEY = "tcp_training_settings_v5_SB";
 const PLANS_KEY = "tcp_training_plans_v5_SB";
 const EVALS_KEY = "tcp_skill_evals_v5_SB";
 const ADMIN_PASSWORD = "Eaton12!@";
-const APP_VERSION = "v2S (2026-10-27)";
+const APP_VERSION = "v3S (2026-10-27)";
 
 // 서버(Supabase)가 원본 저장소 — 큰 데이터는 localStorage에 쌓지 않음
 // (브라우저 용량 초과 방지 + 로그인 세션 토큰 저장 공간 확보)
@@ -314,10 +314,37 @@ const SB_URL = localStorage.getItem("sb_url_tr") || SB_URL_DEFAULT;
 const SB_KEY = localStorage.getItem("sb_key_tr") || SB_KEY_DEFAULT;
 // 기존 Google(GAS) 저장소 — 1회 데이터 이관용으로만 사용
 const OLD_GAS_URL = "https://script.google.com/macros/s/AKfycbyMp1z2Ufy1bCuT-EwsDOj6KWlyQc2PtSJbx6ozTybl8XGE7sTzB5GbrDCpECC_1P5X/exec";
+// 로그인 세션 저장 — IndexedDB 사용(localStorage 용량과 무관). 키를 TCP/FE판과 공유해 한 번 로그인하면 공통 유지
+const SB_AUTH_KEY = "mfg-sb-test-auth";
+var authStore = (function() {
+  var dbp = null;
+  function db() {
+    if (!dbp) dbp = new Promise(function(res, rej) {
+      var r = indexedDB.open('mfg_sb_auth', 1);
+      r.onupgradeneeded = function() { r.result.createObjectStore('kv'); };
+      r.onsuccess = function() { res(r.result); };
+      r.onerror = function() { rej(r.error); };
+    });
+    return dbp;
+  }
+  function run(mode, fn) {
+    return db().then(function(d) { return new Promise(function(res, rej) {
+      var t = d.transaction('kv', mode), q = fn(t.objectStore('kv'));
+      t.oncomplete = function() { res(q ? q.result : undefined); };
+      t.onerror = function() { rej(t.error); };
+    }); });
+  }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  return {
+    getItem: function(k) { return run('readonly', function(s) { return s.get(k); }).then(function(v) { return v != null ? v : lsGet(k); }, function() { return lsGet(k); }); },
+    setItem: function(k, v) { try { localStorage.setItem(k, v); } catch (e) {} return run('readwrite', function(s) { return s.put(v, k); }).catch(function() {}); },
+    removeItem: function(k) { try { localStorage.removeItem(k); } catch (e) {} return run('readwrite', function(s) { return s.delete(k); }).catch(function() {}); }
+  };
+})();
 let _sbClient = null, sbUser = null, sbRole = null, sbReady = false;
 function sbc() {
   if (!_sbClient && window.supabase) {
-    _sbClient = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+    _sbClient = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: SB_AUTH_KEY, storage: authStore } });
   }
   return _sbClient;
 }
