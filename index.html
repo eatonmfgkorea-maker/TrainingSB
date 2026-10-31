@@ -296,7 +296,7 @@ const SETTINGS_KEY = "tcp_training_settings_v5_SB";
 const PLANS_KEY = "tcp_training_plans_v5_SB";
 const EVALS_KEY = "tcp_skill_evals_v5_SB";
 const ADMIN_PASSWORD = "Eaton12!@";
-const APP_VERSION = "v3S (2026-10-27)";
+const APP_VERSION = "v4S (2026-10-31)";
 
 // 서버(Supabase)가 원본 저장소 — 큰 데이터는 localStorage에 쌓지 않음
 // (브라우저 용량 초과 방지 + 로그인 세션 토큰 저장 공간 확보)
@@ -491,36 +491,80 @@ function showLogin(errMsg){
       '<div style="text-align:center;margin-bottom:20px;">'+
         '<div style="font-size:30px;">📘</div>'+
         '<div style="font-size:18px;font-weight:bold;color:#1f2937;margin-top:6px;">MFG 교육 관리 시스템</div>'+
-        '<div style="font-size:12px;color:#9ca3af;margin-top:2px;">로그인</div>'+
+        '<div style="font-size:12px;color:#9ca3af;margin-top:2px;">로그인 · 한 번 로그인하면 다른 MFG 앱도 바로 열립니다</div>'+
       '</div>'+
       (errMsg?('<div style="background:#fef2f2;color:#b91c1c;font-size:12px;border-radius:8px;padding:8px 10px;margin-bottom:12px;">'+errMsg+'</div>'):'')+
-      '<input id="sbEmail" type="email" placeholder="이메일" autocomplete="username" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">'+
+      '<input id="sbEmail" type="text" placeholder="이름" autocomplete="username" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">'+
       '<input id="sbPw" type="password" placeholder="비밀번호" autocomplete="current-password" style="width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:16px;box-sizing:border-box;">'+
       '<button id="sbLoginBtn" style="width:100%;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;">로그인</button>'+
     '</div>');
   const btn=document.getElementById("sbLoginBtn");
   const em=document.getElementById("sbEmail"), pw=document.getElementById("sbPw");
+  try { const last = localStorage.getItem("mfg-sb-test-last-email") || ""; if (!/@mfg\.local$/.test(last)) em.value = last; } catch(e) {}
   const go=()=>sbLogin(em.value.trim(), pw.value);
   btn.addEventListener("click", go);
   pw.addEventListener("keydown", e=>{ if(e.key==="Enter") go(); });
-  em.focus();
+  (em.value ? pw : em).focus();
+}
+// 이름 → 내부 로그인 주소 (다른 MFG 앱과 같은 규칙). '@'가 있으면 그대로
+function idToEmail(id){
+  id = String(id||"").trim(); if (id.indexOf("@") >= 0) return id.toLowerCase();
+  const b = new TextEncoder().encode(id); let h = "";
+  for (let i=0;i<b.length;i++) h += (b[i]<16?"0":"") + b[i].toString(16);
+  return "u-" + h + "@mfg.local";
+}
+// 처음 접속(또는 비밀번호 초기화 후): 본인 비밀번호로 바꿔야 계속
+function showPwChange(name, oldPw, errMsg){
+  const inp = 'width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px;box-sizing:border-box;';
+  sbOverlay(
+    '<div style="width:100%;max-width:360px;background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.12);padding:28px;">'+
+      '<div style="text-align:center;margin-bottom:18px;"><div style="font-size:18px;font-weight:bold;color:#1f2937;">처음 접속입니다</div>'+
+      '<div style="font-size:13px;color:#6b7280;margin-top:6px;"><b>'+String(name).replace(/[<>&]/g,"")+'</b>님, 사용할 비밀번호로 바꿔 주세요.</div></div>'+
+      (errMsg?('<div style="background:#fef2f2;color:#b91c1c;font-size:12px;border-radius:8px;padding:8px 10px;margin-bottom:12px;">'+errMsg+'</div>'):'')+
+      (oldPw?'':'<input id="sbPwO" type="password" placeholder="받은 초기 비밀번호" autocomplete="current-password" style="'+inp+'">')+
+      '<input id="sbPwN" type="password" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password" style="'+inp+'">'+
+      '<input id="sbPwN2" type="password" placeholder="새 비밀번호 확인" autocomplete="new-password" style="'+inp+'margin-bottom:16px;">'+
+      '<button id="sbPwBtn" style="width:100%;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;">비밀번호 변경</button>'+
+      '<button id="sbPwOther" style="width:100%;background:none;border:none;color:#9ca3af;font-size:12px;margin-top:10px;cursor:pointer;">다른 이름으로 로그인</button>'+
+    '</div>');
+  document.getElementById("sbPwOther").addEventListener("click", async ()=>{ try{ await sbc().auth.signOut(); }catch(e){} showLogin(); });
+  const go = async ()=>{
+    const o = oldPw || (document.getElementById("sbPwO")||{}).value || "", n = document.getElementById("sbPwN").value, n2 = document.getElementById("sbPwN2").value;
+    if(!o) return showPwChange(name, oldPw, "초기 비밀번호를 입력하세요.");
+    if(n.length<6) return showPwChange(name, oldPw, "새 비밀번호는 6자 이상이어야 합니다.");
+    if(n!==n2) return showPwChange(name, oldPw, "새 비밀번호 확인이 다릅니다.");
+    const { error } = await sbc().rpc("change_my_password", { p_old:o, p_new:n });
+    if(error) return showPwChange(name, oldPw, error.message||String(error));
+    await afterLogin(null, "", true);
+  };
+  document.getElementById("sbPwBtn").addEventListener("click", go);
+  document.getElementById("sbPwN2").addEventListener("keydown", e=>{ if(e.key==="Enter") go(); });
+  (document.getElementById("sbPwO")||document.getElementById("sbPwN")).focus();
 }
 async function sbLogin(email, password){
   const c = sbc(); if(!c){ showLogin("로그인 모듈을 불러오지 못했습니다. 새로고침 해주세요."); return; }
-  if(!email || !password){ showLogin("이메일과 비밀번호를 입력하세요."); return; }
+  if(!email || !password){ showLogin("이름과 비밀번호를 입력하세요."); return; }
   showGate("로그인 중…");
-  const { data, error } = await c.auth.signInWithPassword({ email, password });
-  if(error){ showLogin("이메일 또는 비밀번호가 올바르지 않습니다."); return; }
-  await afterLogin(data.user);
+  const { data, error } = await c.auth.signInWithPassword({ email: idToEmail(email), password });
+  if(error){ showLogin("이름 또는 비밀번호가 올바르지 않습니다."); return; }
+  try { localStorage.setItem("mfg-sb-test-last-email", email); } catch(e) {}
+  await afterLogin(data.user, password);
 }
-async function afterLogin(user){
+let sbName = "";
+async function afterLogin(user, pw, skipPw){
   const c = sbc();
-  // 1) 인증·승인 확인 (실패 시에만 로그인 화면)
+  // 1) 인증·승인·앱 권한 확인 (실패 시에만 로그인 화면)
   try {
     sbUser = user || (await c.auth.getUser()).data.user;
-    const { data: role } = await c.rpc("my_role");
-    if(!role){ await c.auth.signOut(); sbUser=null; sbRole=null; showLogin("승인되지 않은 계정입니다. 관리자에게 문의하세요."); return; }
-    sbRole = role;
+    let acc = null;
+    const r = await c.rpc("my_account");
+    if (r.error) { const r2 = await c.rpc("my_role"); acc = r2.data ? { role: r2.data, login_id: "", must_change: false, apps: ["training"] } : null; }
+    else acc = r.data;
+    if(!acc || !acc.role){ await c.auth.signOut(); sbUser=null; sbRole=null; showLogin("승인되지 않은 계정입니다. 관리자에게 문의하세요."); return; }
+    sbName = acc.login_id || (sbUser && sbUser.email) || "";
+    if(!(acc.apps||["training"]).includes("training")){ sbRole=null; showLogin("<b>"+sbName.replace(/[<>&]/g,"")+"</b>님은 교육일지 사용 권한이 없습니다. 관리자에게 요청하세요."); return; }
+    if(acc.must_change && !skipPw){ showPwChange(sbName, pw); return; }
+    sbRole = acc.role;
   } catch(err){
     showLogin("로그인 확인 중 오류: " + (err.message||err)); return;
   }
@@ -536,7 +580,7 @@ async function afterLogin(user){
     render(); sbHideOverlay();
   }
 }
-async function sbLogout(){
+async function sbLogout(){   // 모든 MFG 앱에서 함께 로그아웃
   const c = sbc(); if(c){ try{ await c.auth.signOut(); }catch(e){} }
   sbUser=null; sbRole=null; sbReady=false;
   location.reload();
@@ -2085,7 +2129,7 @@ function renderGoogleSync() {
         <p class="text-sm text-gray-700">모든 데이터가 서버에 실시간 자동 저장됩니다. 여러 PC에서 같은 데이터를 봅니다.</p>
         <div class="mt-3 text-sm">
           <div>상태: <b class="text-green-600">✅ 연결됨</b></div>
-          <div>계정: <b>${sbUser ? sbUser.email : '-'}</b> ${isAdmin?'<span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">관리자</span>':''}</div>
+          <div>계정: <b>${sbName || (sbUser ? sbUser.email : '-')}</b> ${isAdmin?'<span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">관리자</span>':''}</div>
           <div>마지막 저장: <b>${syncStatus.last || '없음'}</b></div>
           ${syncStatus.error ? `<div class="text-red-600">오류: ${syncStatus.error}</div>` : ''}
         </div>
@@ -2104,15 +2148,9 @@ function renderGoogleSync() {
 
       ${isAdmin ? `
       <div class="bg-gray-50 border rounded-lg p-4">
-        <h4 class="font-semibold text-gray-700 mb-2">👥 승인 사용자 관리 <span class="text-xs text-gray-400">(관리자)</span></h4>
-        <p class="text-xs text-gray-500 mb-2">승인된 이메일만 로그인할 수 있습니다. (가입은 막혀 있음)</p>
-        <div class="flex gap-2 mb-3">
-          <input id="sbNewEmail" type="email" placeholder="추가할 이메일" class="flex-1 border rounded px-3 py-1.5 text-sm">
-          <select id="sbNewRole" class="border rounded px-2 py-1.5 text-sm"><option value="user">일반</option><option value="admin">관리자</option></select>
-          <button data-action="sbAddUser" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">추가</button>
-        </div>
-        <button data-action="sbListUsers" class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm mb-2">목록 불러오기</button>
-        <div id="sbUserList" class="text-sm"></div>
+        <h4 class="font-semibold text-gray-700 mb-2">👥 사용자 · 앱 권한 관리 <span class="text-xs text-gray-400">(관리자)</span></h4>
+        <p class="text-xs text-gray-500 mb-2">사용자 추가, 앱별 권한, 비밀번호 초기화는 메인 포털에서 한 곳에서 관리합니다.</p>
+        <a href="https://eatonmfgkorea-maker.github.io/MFGManagement/#users" class="inline-block bg-blue-600 text-white px-3 py-1.5 rounded text-sm">메인 포털에서 관리</a>
       </div>` : ''}
 
       <div class="bg-gray-50 border rounded-lg p-4">
@@ -3254,7 +3292,7 @@ function handleAction(e) {
     case "downloadAllFromGoogle":
       if(confirm("서버에서 다운로드?")){syncFromGoogle().then(u=>{if(u){render();alert("다운로드 완료!");}else alert(syncStatus.error||"데이터 없음");});}break;
     case "migrateFromGoogle": migrateFromGoogle(); break;
-    case "sbLogout": if(confirm("로그아웃 하시겠습니까?")) sbLogout(); break;
+    case "sbLogout": if(confirm("로그아웃 하시겠습니까?\n(모든 MFG 앱에서 함께 로그아웃됩니다)")) sbLogout(); break;
     case "sbListUsers": sbListUsers(); break;
     case "sbAddUser": sbAddUser(); break;
     case "sbDelUser": sbDelUser(btn.dataset.email); break;
